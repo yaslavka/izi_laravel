@@ -1,0 +1,28 @@
+import {BidsListener} from "./listener/bids7.js?v=388011";
+import {FortuneWheelListener} from "./listener/fortune-wheel.js?v=388011";
+
+class FortuneWheelController {
+    constructor() {
+        this.bidsListener = new BidsListener()
+        new FortuneWheelListener(this.bidsListener)
+        this.initImageLoader()
+    }
+
+    initImageLoader() {
+        window.addEventListener('load', () => {
+            const wheelImage = document.querySelector('.wheel-bg')
+            const prizeIcons = document.querySelectorAll('.icon__money')
+            const allImages = [wheelImage, ...prizeIcons]
+            
+            allImages.forEach(img => {
+                if (!img.complete || img.naturalHeight === 0) {
+                    img.src = img.src
+                }
+            })
+        })
+    }
+}
+
+$(document).ready(function () {
+    new FortuneWheelController()
+})

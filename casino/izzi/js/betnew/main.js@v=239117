@@ -1,0 +1,3162 @@
+var cdn = $(".variables-block-for-js .cdn-img").html(),
+  play = $(".variables-block-for-js .play").html(),
+  demo = $(".variables-block-for-js .demo").html(),
+  balance = $(".variables-block-for-js .user-balance").html(),
+  donate = $(".variables-block-for-js .donate").html(),
+  regTxt = $(".variables-block-for-js .reg-txt").html(),
+  pointsName = $(".variables-block-for-js .points-name").html(),
+  price = $(".variables-block-for-js .price").html(),
+  bonusDuration = $(".variables-block-for-js .bonus-duration").html(),
+  bonusPercent = $(".variables-block-for-js .bonus-percent").html(),
+  bonusRemainingTime = $(".variables-block-for-js .bonus-remaining-time").html(),
+  bonusIndefinitely = $(".variables-block-for-js .bonus-indefinitely").html(),
+  or = $(".variables-block-for-js .or").html(),
+  bonusBuy = $(".variables-block-for-js .bonus-buy").html(),
+  benefitsActivate = $(".variables-block-for-js .benefits-activate").html(),
+  benefitsActivated = $(".variables-block-for-js .benefits-activated").html(),
+  benefitsEnded = $(".variables-block-for-js .benefits-ended").html(),
+  benefitsCooldown = $(".variables-block-for-js .benefits-cooldown").html(),
+  cardGetOpen = $(".variables-block-for-js .card-get-open").html(),
+  userId = $(".variables-block-for-js .userId").html(),
+  userIdVar2 = $(".variables-block-for-js .user-id").html(),
+  isRestricted = $(".variables-block-for-js .is-restricted").html(),
+  getGameFrom = 0,
+  getGameTo = 29,
+    historyId = $(".variables-block-for-js .history-id").html(),
+    historyData = $(".variables-block-for-js .history-data").html(),
+    historySum = $(".variables-block-for-js .history-sum").html(),
+    historySystem = $(".variables-block-for-js .history-system").html(),
+    historyDeposit = $(".variables-block-for-js .history-deposit").html(),
+    historyDescription = $(".variables-block-for-js .history-description").html(),
+    historyType = $(".variables-block-for-js .history-type").html();
+
+// ------------- START TIMER -------------- //
+const maxDuration = 3 * 60 * 1000;
+
+function startTimer() {
+    let startTime = localStorage.getItem('startTime');
+
+    if (!startTime) {
+        startTime = Date.now();
+        localStorage.setItem('startTime', startTime);
+    } else {
+        startTime = parseInt(startTime, 10);
+    }
+
+    function updateElapsedTime() {
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = maxDuration - elapsedTime;
+
+        // console.log($("#login").hasClass("active"))
+        if (remainingTime <= 0 && !$("#login").hasClass("active")) {
+            clearInterval(intervalId);
+            localStorage.removeItem('startTime');
+            localStorage.setItem('elapsedTime', 0);
+          
+            close_small();
+            modal_container();
+            swiperWelcome.init();
+            sortWelcomeBonuses()
+            $(".modal-container_2").addClass("active");
+            $("html").addClass("modal_open");
+            $(".modal-win#reg").addClass("active");
+            $(".modal-container_2 > form").removeClass("active");
+            $(".modal-win#reg").parent("form").addClass("active");
+            $(".modal-overflow").addClass("active");
+          
+            startTimer();
+        } else {
+            const secondsRemaining = Math.floor(remainingTime / 1000);
+            localStorage.setItem('elapsedTime', secondsRemaining);
+        }
+    }
+
+    const intervalId = setInterval(updateElapsedTime, 1000);
+}
+
+if(userId == "" || userIdVar2 == ""){
+  startTimer();
+}
+// ------------- END TIMER -------------- //
+
+
+// ------------- START PARTNER -------------- //
+
+$(".parnter-btn.bocome-partner").on("click", function(){
+  patrtnership()
+});
+
+function patrtnership() {
+  $.ajax({
+    type: "GET",
+    url: "/api/ajax/partners.php",
+    success: function (responce) {
+      let parsed = JSON.parse(responce);
+      
+      if (parsed.success){
+        location.reload()
+      }else{
+        $(".full-width-page .container").append("<p class='partner-error-text' style='text-align: center;color: #d63741;'>"+parsed.error+"<p>");
+        setTimeout(function(){
+          $('.partner-error-text').remove()
+        }, 3000)
+      }
+    }
+  });
+}
+
+// ------------- END PARTNER -------------- //
+
+
+// --------------- START PROFILE CARDS --------------- //
+if (window.location.pathname.includes("profile")) {
+  function updateCountdown(element, endTime) {
+    function update() {
+      const now = new Date().getTime();
+      const distance = endTime - now;
+      if (distance < 0) {
+        element.textContent = "00:00:00";
+        return;
+      }
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      element.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+    update();
+    return setInterval(update, 60000); // Update every minute
+  }
+
+  function getCards() {
+    $.ajax({
+      type: "GET",
+      url: "/api/ajax/buffcard.php",
+      success: function (data) {
+        let cardsArr = JSON.parse(data);
+        for (const key in cardsArr) {
+          var value = cardsArr[key],
+            card_id = value.id,
+            card_image = value.image_path,
+            card_name = value.name,
+            card_description = value.description,
+            card_status = value.status,
+            card_cost = value.purchase_cost,
+            parentIds = value.parent_ids,
+            benefits_activated_at = value.benefits_activated_at,
+            isBenefitsEmpty = value.isBenefitsEmpty,
+            isBenefitsExpired = value.isBenefitsExpired,
+            isOnCooldown = value.isOnCooldown,
+            benefits = value.benefits,
+            purchase_action = value.purchase_action_intl,
+            cardBody = "";
+
+          var container = $('<div class="benefit_info"></div>');
+
+          benefits.forEach(function (item) {
+            $.each(item, function (title, values) {
+              var titleDiv = $('<div class="title"></div>').text(title);
+              container.append(titleDiv);
+
+              $.each(values, function (key, value) {
+                var rowDiv = $('<div class="row"></div>');
+                if (key == 'duration') {
+                  var itemKeyDiv = $('<div class="item"></div>').text(bonusDuration);
+                } else if (key == 'benefitValue') {
+                  var itemKeyDiv = $('<div class="item"></div>').text(bonusPercent);
+                } else if (key == 'remain_duration') {
+                  var itemKeyDiv = $('<div class="item"></div>').html(bonusRemainingTime);
+                }
+                if (key == 'remain_duration' && !value) {
+                  var itemValueDiv = $('<div class="item"></div>').text(bonusIndefinitely);
+                } else if (key == 'remain_duration') {
+                  if (!isBenefitsExpired) {
+                    var itemValueDiv = $('<div class="item countdown-timer"></div>').text(value);
+                  } else {
+                    return true;
+                  }
+                } else {
+                  var itemValueDiv = $('<div class="item"></div>').text(value);
+                }
+
+                if (typeof itemValueDiv !== 'undefined') {
+                  rowDiv.append(itemKeyDiv).append(itemValueDiv);
+                  container.append(rowDiv);
+
+                  if (key == 'remain_duration' && value && !isBenefitsExpired) {
+                    setTimeout(() => {
+                      const [days, hours, minutes] = value.split(':').map(Number);
+                      const endTime = new Date().getTime() + (days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000) + (minutes * 60 * 1000);
+                      updateCountdown(itemValueDiv[0], endTime);
+                    }, 0);
+                  }
+                }
+              });
+            });
+          });
+
+          var purchaseTxt = '';
+          if (purchase_action) {
+            var purchaseTxt = ' ( ' + or + ' ' + purchase_action + ')';
+          }
+
+          cardBody = `
+          <div>
+            <div class="card__error_text" style="display: none;"></div>
+            <div class="card unlocked" data-card-id=${card_id}>
+              <img src="${card_image}" alt="" class="card__img">
+              <div class="card__title">${card_name}</div>
+              <div class="card__description">${card_description}</div>
+              <div class="card__cost">
+                ${price} (${pointsName}): <strong>${card_cost}</strong>
+                <br>
+                ${purchaseTxt}
+              </div>
+              <div class="btn btn-filled red activate-card" data-id="${card_id}">` + bonusBuy + `</div>
+            </div>
+          <div>
+        `;
+
+          if (card_status == "bought" && isBenefitsEmpty) {
+            cardBody = `<div><div class="card unlocked">
+            <img src="${card_image}" alt="" class="card__img">
+            <div class="card__title">${card_name}</div>
+            <div class="card__description">${card_description}</div>
+          </div>`;
+          } else if (card_status == "bought" && !benefits_activated_at && !isBenefitsEmpty) {
+            cardBody = `<div><div class="card unlocked">
+            <img src="${card_image}" alt="" class="card__img">
+            <div class="card__title">${card_name}</div>
+            <div class="card__description">${card_description}</div>
+            <div class="btn btn-filled red activate-benefit" data-id="${card_id}">` + benefitsActivate + `</div>
+          </div></div>`;
+          } else if (card_status == "bought" && !isBenefitsEmpty) {
+            if (!isBenefitsExpired) {
+              cardBody = `<div><div class="card unlocked">
+              <img src="${card_image}" alt="" class="card__img">
+              <div class="card__title">${card_name}</div>
+              <div class="card__description">${card_description}</div>
+              <div class="btn btn-bordered activate-benefit" data-id="${card_id}">` + benefitsActivated + `</div>
+            </div></div>`;
+            } else if (isBenefitsExpired && isOnCooldown == null) {
+              cardBody = `<div><div class="card unlocked">
+              <img src="${card_image}" alt="" class="card__img">
+              <div class="card__title">${card_name}</div>
+              <div class="card__description">${card_description}</div>
+              <div class="btn btn-bordered activate-benefit" data-id="${card_id}">` + benefitsEnded + `</div>
+            </div></div>`;
+            } else if (isBenefitsExpired && !isOnCooldown) {
+              cardBody = `<div><div class="card unlocked">
+              <img src="${card_image}" alt="" class="card__img">
+              <div class="card__title">${card_name}</div>
+              <div class="card__description">${card_description}</div>
+              <div class="btn btn-filled red activate-benefit" data-id="${card_id}">` + benefitsActivate + `</div>
+            </div></div>`;
+            } else if (isBenefitsExpired && isOnCooldown) {
+              cardBody = `<div><div class="card unlocked">
+              <img src="${card_image}" alt="" class="card__img">
+              <div class="card__title">${card_name}</div>
+              <div class="card__description">${card_description}</div>
+              <div class="btn btn-bordered activate-benefit" data-id="${card_id}">` + benefitsCooldown + `</div>
+            </div></div>`;
+            }
+          }
+
+          if (card_status == "locked") {
+            let benefitsHtml = '';
+
+            benefits.forEach(function (benefit) {
+              $.each(benefit, function (title, values) {
+                benefitsHtml += `<div class="benefit_info locked">`;
+                benefitsHtml += `<div class="title">${title}</div>`;
+
+                $.each(values, function (key, value) {
+                  let label = key === 'duration' ? bonusDuration :
+                    key === 'benefitValue' ? bonusPercent :
+                      key;
+
+                  benefitsHtml += `
+                    <div class="row">
+                      <div class="item">${label}:</div>
+                      <div class="item">${value}</div>
+                    </div>`;
+                });
+
+                benefitsHtml += `</div>`;
+              });
+            });
+
+            let parentNames = parentIds.map(function (parentId) {
+              return cardsArr[parentId].name || "Not found";
+            }).join(', ');
+
+            cardBody = `
+              <div class="card locked">
+                <img src="${card_image}" class="card__img" alt="">
+                <div class="card__title">${card_name}</div>
+                <div class="card__description">
+                  <div>`+ cardGetOpen + `</div>
+                  <div>${parentNames}</div>
+                  </div>
+                  ${benefitsHtml}
+              </div>`;
+          }
+
+          $("#cards .cards-block").append(cardBody);
+          $("#cards .cards-block .card.unlocked").append(container);
+        }
+      }
+    });
+  }
+
+  getCards()
+
+  $(document).on("click", ".activate-card", function () {
+    var id = $(this).data("id"),
+      action = $(this).data("action");
+    $.ajax({
+      type: 'POST',
+      url: '/api/buffcard/index.php',
+      dataType: 'json',
+      data: JSON.stringify({ "cardId": id, "action": "purchaseCardWithPoints" }),
+      success: function (response) {
+        if (!response.success) {
+          $(`[data-card-id="${id}"]`).prev('.card__error_text').html(response.msg).fadeIn(400)
+          setTimeout(() => {
+            $(`[data-card-id="${id}"]`).prev('.card__error_text').empty().hide()
+          }, 2000)
+
+          return
+        }
+        $("#cards .cards-block").html("");
+        getCards()
+      },
+      error: function (xhr, status, error) {
+        $(`[data-card-id="${id}"]`).prev('.card__error_text').html('Error').fadeIn(400)
+        setTimeout(() => {
+          $(`[data-card-id="${id}"]`).prev('.card__error_text').empty().hide()
+        }, 2000)
+        console.error('Error:', error);
+      }
+    });
+  });
+
+  $(document).on("click", ".activate-benefit", function () {
+    var id = $(this).data("id"),
+      action = $(this).data("action");
+    $.ajax({
+      type: 'POST',
+      url: '/api/buffcard/index.php',
+      dataType: 'json',
+      data: JSON.stringify({ "cardId": id, "action": "activateBenefits" }),
+      success: function (response) {
+        if (!response.success) {
+          $(`[data-card-id="${id}"]`).prev('.card__error_text').html(response.msg).fadeIn(400)
+          setTimeout(() => {
+            $(`[data-card-id="${id}"]`).prev('.card__error_text').empty().hide()
+          }, 2000)
+
+          return
+        }
+        $("#cards .cards-block").html("");
+        getCards()
+      },
+      error: function (xhr, status, error) {
+        $(`[data-card-id="${id}"]`).prev('.card__error_text').html('Error').fadeIn(400)
+        setTimeout(() => {
+          $(`[data-card-id="${id}"]`).prev('.card__error_text').empty().hide()
+        }, 2000)
+        console.error('Error:', error);
+      }
+    });
+  });
+}
+
+// --------------- END PROFILE CARDS --------------- //
+
+
+// *** START DEACTIVATE BONUS *** //
+$(".deactivate-popup").on("click", function () {
+  $(this).parents(".bonus-panel").find(".bonus-popup").addClass("active");
+});
+
+$(".bonus-popup .close").on("click", function () {
+  $(this).parents(".bonus-popup").removeClass("active");
+});
+// *** END DEACTIVATE BONUS *** //
+
+
+// ------- START DYNAMIC JACKPOTS -------- //
+
+$('.jack-rank__summ').each(function () {
+  var summSpan = $(this).find('span').first();
+  var currency = $(this).find('span span').html()
+
+  function updateSumm() {
+    var currentValue = parseInt(summSpan.text().replace(/\s+/g, ''));
+    var newValue = currentValue + 1;
+    var formattedValue = newValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    summSpan.html(formattedValue + " <span>" + currency + "</span>");
+    var randomInterval = Math.floor(Math.random() * 3000) + 1000;
+    setTimeout(updateSumm, randomInterval);
+  }
+  updateSumm();
+});
+
+// ------- END DYNAMIC JACKPOTS -------- //
+
+
+// --------- START LAZY LOAD --------- //
+
+function lazyLoad() {
+  function isElementInViewport(el, offset = 400) {
+    var rect = el.getBoundingClientRect();
+    return (
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <= ((window.innerHeight || document.documentElement.clientHeight) + offset) &&
+      rect.right <= (window.innerWidth || document.documentElement.clientWidth) + 10000
+    );
+  }
+
+  $(".hide-img").each(function () {
+    if (isElementInViewport(this, 400)) {
+      $(this).removeClass("hide-img")
+    }
+  });
+  $("img[data-src]").each(function () {
+    if (isElementInViewport(this)) {
+      $(this).attr("src", $(this).data("src"))
+    }
+  });
+}
+
+$(document).on("click", function () {
+  lazyLoad()
+})
+
+lazyLoad()
+
+$(document).on("scroll", function () {
+  lazyLoad()
+});
+
+$("div").on("scroll", function () {
+  lazyLoad()
+});
+
+// --------- END LAZY LOAD ----------- //
+
+
+// *** START PAGINATION *** //
+
+function getTransactions(type, limit = 0, offset = 0) {
+  $.ajax({
+    url: '/api/ajax/transaction.php',
+    type: 'POST',
+    data: { "type": type, "limit": limit, "offset": offset },
+    dataType: 'json',
+    success: function (data) {
+        // console.log(data.content);
+        list = JSON.parse(data.content);
+        if (type == 'enter') {
+            $('#tab-content__enter .history__body').html('')
+            var invCodes = $.map(list, function(item) {
+                var typeContent = item.status === 'paid' ? `<span style="color:#1e8517;">${item.type}</span>` : item.type;
+                var row = `
+                    <tr class="history__row">
+                        <th class="history__cell"><span>${historyId}</span> ${item.inv_code}</th>
+                        <th class="history__cell"><span>${historyData}</span> ${item.date}</th>
+                        <th class="history__cell"><span>${historySum}</span> ${item.sum} ${item.currency}</th>
+                        <th class="history__cell"><span>${historySystem}</span> ${item.paysys}</th>
+                        <th class="history__cell" ><span>${historyType}</span> ${typeContent}</th>
+                    </tr>
+                `;
+                $('#tab-content__enter .history__body').append(row);
+            });
+//                $('#tab-content__enter .history__body').html(data.content);
+        }
+        if (type == 'log') {
+            $('#tab-content__log .history__body').html('')
+            var invCodes = $.map(list, function(item) {
+                var row = `
+                    <tr class="history__row">
+                        <th class="history__cell"><span>${historyId}</span> ${item.inv_code}</th>
+                        <th class="history__cell"><span>${historyData}</span> ${item.date}</th>
+                        <th class="history__cell" ><span>${historyType}</span> ${item.type}</th>
+                        <th class="history__cell"><span>${historySum}</span> ${item.sum}</th>
+                        <th class="history__cell"><span>${historyDeposit}</span> ${item.amount}</th>
+                        <th class="history__cell"><span>${historyDescription}</span> ${item.log}</th>
+                    </tr>
+                `;
+                $('#tab-content__log .history__body').append(row);
+            });
+//                $('#tab-content__log .history__body').html(data.content);
+        }
+    },
+    error: function (xhr, status, error) {
+      console.error('Error:', error);
+    }
+  });
+}
+
+var limit = 10;
+$('#history .pagination li a.next').on("click", function () {
+  var pagination_el = $(this).parent().parent();
+  var type = pagination_el.data('type');
+  var current_page = pagination_el.data('current_page');
+  var page = current_page + 1;
+  var offset = page * limit;
+  $(this).parent().parent().data('current_page', page);
+  pagination_el.find('.prev').show();
+  if (offset + limit >= pagination_el.data('total_count')) {
+    pagination_el.find('.next').hide();
+  }
+  getTransactions(type, limit, offset);
+});
+
+$('#history .pagination li a.prev').on("click", function () {
+  var pagination_el = $(this).parent().parent();
+  var type = pagination_el.data('type');
+  var current_page = pagination_el.data('current_page');
+  var page = current_page - 1;
+  var offset = page * limit;
+  $(this).parent().parent().data('current_page', page);
+  pagination_el.find('.next').show();
+  if (page == 0) {
+    pagination_el.find('.prev').hide();
+  }
+  getTransactions(type, limit, offset);
+});
+
+// *** END PAGINATION *** //
+
+
+// start show pass in change pass //
+
+$(document).on("click", ".eye-pass", function () {
+  $(this).toggleClass("active")
+  if ($(this).prev("input").attr("type") == "password") {
+    $(this).prev("input").attr("type", "text")
+  } else if ($(this).prev("input").attr("type") == "text") {
+    $(this).prev("input").attr("type", "password")
+  }
+});
+
+// end show pass in change pass //
+
+
+// *** START CHAT AREA *** //
+if ($("div").hasClass("user-support-block")) {
+  var initialHeight = $("#mess_reply").height();
+  var initialRows = $("#mess_reply").val().split("\n").length;
+
+  $("#mess_reply").on("input", function () {
+    $(this).height(initialHeight);
+
+    var currentRows = $(this).val().split("\n").length;
+
+    if (currentRows > initialRows) {
+      $(this).height(initialHeight);
+      var currentHeight = $(this).prop("scrollHeight");
+      $(this).height(currentHeight);
+    } else {
+      $(this).css("height", "auto");
+    }
+  });
+}
+
+//Red icon on file input
+
+$('#file_chat_attachment').on('change', function () {
+  if (this.files && this.files[0]) {
+    $('.file_chat_attachment_icon path').css('fill', '#FF7A00');
+  } else {
+    $('.file_chat_attachment_icon path').css('fill', '');
+  }
+});
+
+// *** END CHAT AREA *** //
+
+// *** START ANCHORE LINK *** //
+
+$(document).on('click', 'a.scroll[href^="#"]', function (event) {
+  event.preventDefault();
+  $('html, body').animate({
+    scrollTop: $($.attr(this, 'href')).offset().top - 100
+  }, 500);
+});
+
+// *** END ANCHORE LINK *** //
+
+var cdn = $(".variables-block-for-js .cdn-img").html(),
+  play = $(".variables-block-for-js .play").html(),
+  user_id = $(".variables-block-for-js .user-id").html(),
+  demo = $(".variables-block-for-js .demo").html(),
+  balance = $(".variables-block-for-js .user-balance").html(),
+  donate = $(".variables-block-for-js .donate").html(),
+  regTxt = $(".variables-block-for-js .reg-txt").html(),
+  selected_txt = $(".variables-block-for-js .selected").html(),
+  logo = $(".variables-block-for-js .logo").html(),
+  getGameFrom = 0,
+  getGameTo = 29;
+
+var url = window.location.href.replace(/\/$/, '');
+var lastSeg = url.substr(url.lastIndexOf('/') + 1);
+lastSeg = lastSeg.split('?')[0];
+var firstPath = location.pathname.split('/')[1];
+
+// *** START BONUSES DENIED *** //
+
+$(document).on("click", ".form-gift-reg .denied", function () {
+  var val = $("#currency").find(":selected").text();
+
+  if($(".welcome-bonus-slider .swiper-slide[data-currency="+val+"]").length >= 1) {
+    if ($(this).find("input").is(":checked")) {
+      $(document).find(".welcome-bonus-slider .swiper-slide.swiper-slide-active label").trigger("click");
+    } else {
+      $(this).find("input").prop("checked", "checked");
+    }
+  }
+});
+
+// *** END BONUSES DENIED *** //
+
+
+// *** START OPEN PROVIDERS POPUP *** //
+
+$(".open-providers-popup").on("click", function () {
+  $(".modal-win#providers").toggleClass("active");
+  $(".modal-overflow").toggleClass("active");
+  $(".modal-container_2").toggleClass("active");
+  $("html").toggleClass("modal_open");
+});
+
+// *** END OPEN PROVIDERS POPUP *** //
+
+
+// *** START OPEN EXIT *** //
+
+$(".open-exit").on("click", function () {
+  $(".modal-win#exit").toggleClass("active");
+  $(".modal-overflow").toggleClass("active");
+  $(".modal-container_2").toggleClass("active");
+  $("html").addClass("modal_open");
+
+  //  $("html").animate({
+  //    scrollTop: $('.fixed-header').height()
+  //  });
+});
+
+// *** END OPEN EXIT *** //
+
+
+// *** START PROFILE DROPDOWN *** //
+
+$(".profile-menu__btn").on("click", function () {
+  $(".header .profile-menu").toggleClass("active");
+  $("html").toggleClass("profile-drop-activated");
+});
+
+$(".profile-dropdown a").on("click", function () {
+  $(".header .profile-menu").removeClass("active");
+  $("html").removeClass("profile-drop-activated");
+});
+
+$(".close-profile").on("click", function () {
+  $(".header .profile-menu").removeClass("active");
+  $("html").removeClass("profile-drop-activated");
+});
+
+$(document).mouseup(function (e) {
+  var div = $(".profile-menu");
+  if (!div.is(e.target) && div.has(e.target).length === 0) {
+    $(".header .profile-menu").removeClass("active");
+    $("html").removeClass("profile-drop-activated");
+  }
+});
+
+// *** END PROFILE DROPDOWN *** //
+
+// *** START JACKPOT SLIDER *** //
+
+if ($("div").hasClass("jackpot-games")){
+  var swiperJacpot = new Swiper(".swiper.jackpot-games", {
+    slidesPerGroup: 4,
+    slidesPerView: "auto",
+    spaceBetween: 20,
+    navigation: {
+      nextEl: ".jackpot-games + .swiper-button-prev + .swiper-button-next",
+      prevEl: ".jackpot-games + .swiper-button-prev",
+    },
+  });
+}
+
+// *** END JACPOT SLIDER *** //
+
+
+// *** START RANDOM GAME SLIDER *** //
+if ($("div").hasClass("random-slider__swiper")){
+  var swiperRandom = new Swiper(".random-slider__swiper", {
+    effect: 'coverflow',
+    loop: true,
+    centeredSlides: true,
+    slidesPerView: 13,
+    speed: 50,
+    allowTouchMove: false,
+    coverflowEffect: {
+      rotate: 0,
+      stretch: 0,
+      depth: 0,
+      modifier: 1,
+      scale: .95,
+    }
+  });
+}
+
+$(".choose-game").on("click", function () {
+  var randomSlide = Math.floor(Math.random() * (58 - 7 + 1) + 7),
+    n = 7;
+
+  function myLoop() {
+    setTimeout(function () {
+      swiperRandom.slideTo(n, 0, false);
+      lazyLoad()
+      n++;
+
+      if (n < randomSlide) {
+        myLoop();
+        lazyLoad()
+      }
+    }, 50)
+  }
+
+  myLoop();
+});
+
+// *** END RANDOM GAME SLIDER *** //
+
+
+// *** START FOOTER MOBILE *** //
+
+$(".h-footer-menu").on("click", function () {
+  $(this).parent(".footer-menu").toggleClass("active");
+});
+
+// *** END FOOTER MOBILE *** //
+
+
+// *** START MENU *** //
+
+$(document).on("click", ".head_menu_btn", function () {
+  $(this).toggleClass('active');
+  $('.topmenu').toggleClass('active');
+  $('.overflow-topmenu').toggleClass('active');
+  // $('.block-content').toggleClass('menu-open');
+  // $('.footer').toggleClass('menu-open');
+});
+
+
+$(document).on("click", ".sidebar-menu-btn", function () {
+  $('html').toggleClass('collapsed');
+  $('.topmenu').toggleClass('active');
+  $('.block-topmenu_head').toggleClass('active');
+  $('.header').toggleClass('active');
+  $('.page-content').toggleClass('active');
+  $('.open-menu').toggleClass('active');
+  if ($(window).outerWidth() <= 1600) {
+    $("html").toggleClass("modal_open");
+  }
+});
+
+$(document).on("click", ".mobile-bottom-menu .open-menu", function () {
+  $('.topmenu').toggleClass('active');
+  $('.block-topmenu_head').toggleClass('active');
+  $('.header').toggleClass('active');
+  $('.page-content').toggleClass('active');
+  $('.open-menu').toggleClass('active');
+  $("html").toggleClass("modal_open");
+});
+
+$(document).on("click", ".overflow-topmenu", function () {
+  $(this).toggleClass('active');
+  $('.open-menu-mobile').toggleClass('active');
+  $('.topmenu').toggleClass('active');
+  $('.block-content').toggleClass('menu-open');
+  $('.footer').toggleClass('menu-open');
+  $("html").removeClass("modal_open");
+});
+
+
+if ($(window).width() < 992) {
+  $(document).on("click", ".topmenu .one-menu.open-menu a.a-to-open-d", function () {
+    event.preventDefault();
+    // $('header').find('.topmenu').addClass('to-open-d');
+    $(this).parent().parent().addClass('active');
+  });
+}
+
+
+$(".open-lang a").each(function () {
+  var href = $(this).attr('href');
+  $url_page = location.pathname;
+  $new_url_lang = $url_page + href;
+  $(this).attr('href', $new_url_lang);
+});
+
+$(document).on("click", ".open-lang .close", function () {
+  $(".btn-lang").toggleClass('active');
+  $('.open-lang').toggleClass('active');
+});
+
+$(document).mouseup(function (e) {
+  var div = $(".open-lang__wrapper");
+  if (!div.is(e.target) && div.has(e.target).length === 0 && $(".open-lang").hasClass("active")) {
+    $(".btn-lang").toggleClass('active');
+    $('.open-lang').toggleClass('active');
+  }
+});
+
+$(document).on("click", ".btn-lang", function () {
+  $(this).toggleClass('active');
+  $('.open-lang').toggleClass('active');
+});
+
+
+// *** END MENU *** //
+
+
+// *** START SPORT *** //
+
+
+// $url_sport = location.pathname;
+// if($url_sport == "/sport/"){
+// $('.btn-swap a').removeClass('active');
+// $('.btn-swap a:nth-child(2)').addClass('active');
+// }
+
+
+// *** END SPORT *** //
+
+
+// *** START ONLOAD *** //
+
+
+var width_body = $('html body').width();
+if (width_body > 991) {
+  // $('.close-menu').trigger('click');
+} else {
+  // $('.open-menu-mobile').trigger('click');
+}
+
+
+// *** END ONLOAD *** //
+
+
+// *** START MODAL *** //
+
+
+function close_small() {
+  $("html").removeClass("modal_open");
+  $(".modal-win").removeClass("active");
+  $(".form_login").removeClass("active");
+  $(".modal-win#reg").parent("form").removeClass("active");
+  $(".modal-overflow").removeClass("active");
+  $(".modal-container_2").removeClass("active");
+  $(".popup_undefined:not(.static-profile)").hide();
+}
+
+$(document).on("click", ".modal-overflow", function () {
+  close_small();
+  $(".popup_undefined:not(.static-profile)").hide();
+});
+
+function modal_container() {
+  $(".modal-container_2").addClass("active");
+  $("html").addClass("modal_open");
+    
+    let params = new URLSearchParams(window.location.search);
+    let currency = params.get("currency");
+    
+    if (currency) {
+//        console.log(currency)
+        $("select[name=currency] option").each(function(){
+            if ($(this).attr("value") == currency) {
+                $(this).insertAfter("select[name=currency] option[value='']")
+            }
+        });
+    }
+}
+
+$(document).on("click", ".close-small", function () {
+  close_small();
+  $("html").removeClass("modal_open");
+  $(".modal-container_2").removeClass("active");
+});
+
+
+// *** END MODAL *** //
+
+
+// *** START TOP SWIPER *** //
+
+
+if ($(".TopSwiper .swiper-slide").length >= 1) {
+  var swiperTop = new Swiper(".index-slider .swiper.TopSwiper", {
+    loop: true,
+    autoHeight: true,
+    centeredSlides: true,
+    slidesPerView: 'auto',
+    addSlidesAfter: 10,
+    initialSlide: 0,
+    pagination: {
+      el: '.index-slider .swiper-pagination',
+      type: 'bullets',
+      clickable: true,
+    },
+    navigation: {
+      nextEl: ".index-slider .swiper.TopSwiper .swiper-button-next",
+      prevEl: ".index-slider .swiper.TopSwiper .swiper-button-prev",
+    },
+  });
+
+  swiperTop.on('slideChange', function () {
+    if ($("div").hasClass("slides-btns")) {
+      $(".slides-btns .item").removeClass("active").eq(swiperTop.activeIndex).addClass("active")
+    }
+  });
+}
+
+/*    Add image motion     */
+$(".index-slider .swiper-slide").on("mouseenter", function () {
+  $(this).on("mousemove", function () {
+    var x = event.pageX / 2 * 0.02,
+      y = event.pageY / 2 * 0.02,
+      bgStyle = $(this).attr("data-style")
+    $(this).find(".img-wrap img").attr("style", "transform: translate(" + x.toFixed(2) + "px, " + y.toFixed(2) + "px);");
+    $(this).removeAttr("style")
+
+    var numX = Number(Number(50) - Number(x.toFixed(2))),
+      y = event.pageY / 2 * 0.2,
+      numY = Number(Number(50) - Number(y.toFixed(2))),
+      newStyle = bgStyle + "; background-position:" + numX + "% " + numY + "%;";
+
+
+    $(this).attr("style", newStyle)
+  });
+});
+
+$(".slides-btns .item").on("click", function () {
+  var num = $(this).index()
+  swiperTop.slideTo(num)
+});
+
+
+// *** END TOP SWIPER *** //
+
+
+// *** START TOURNAMENT WINS *** //
+
+if ($("div").hasClass("swiper-tournament-slider")){
+  var swiperTour = new Swiper('.swiper-tournament-slider', {
+    navigation: {
+      nextEl: ".swiper-tournament-slider .swiper-button-next",
+      prevEl: ".swiper-tournament-slider .swiper-button-prev",
+    },
+  });
+}
+
+
+// *** END TOURNAMENT WINS *** //
+
+
+
+// *** TOURNAMENT BTNS SCROLL *** //
+
+$(".details__btn").click(function () {
+  var btn = $(this).attr("data-scroll")
+  $([document.documentElement, document.body]).animate({
+    scrollTop: $("" + btn + "").offset().top - 100
+  }, 1000);
+});
+
+// *** TOURNAMENT BTNS SCROLL *** //
+
+
+// *** START TOURNAMENTS *** //
+
+// *** START ADD TOUR *** //
+
+$(".opt-in").on("click", function () {
+  $(this).addClass("active");
+  $(this).addClass("reg");
+  regTour()
+});
+
+function regTour() {
+  var login = $(".opt-in.reg").attr("data-login");
+  var id = $(".opt-in.reg").attr("data-tour-id");
+
+  $.ajax({
+    type: "POST",
+    dataType: 'json',
+    url: "/api/ajax/reg_tour_user.php",
+    data: {
+      "login": login,
+      "id": id
+    },
+    success: function (reg) {
+      if (reg.success == true) {
+        //        window.location.reload();
+        if (reg.isWager == true) {
+          $('.popup2.popup_bonusNotification .popup__content .popup__title').html(reg.message);
+          $('.popup2.popup_bonusNotification').show();
+        }
+        $(".btn.opt-in.reg").removeClass("reg")
+      }
+      if (reg.success == false) {
+        //        $(".reg-form .answer").text(reg.error);
+        $(".btn.opt-in.reg").removeClass("active")
+        $(".btn.opt-in.reg").removeClass("reg")
+      }
+    }
+  });
+}
+// *** END ADD TOUR *** //
+
+
+if ($("div").hasClass("swiper.tours-slider1")){
+  const swiperTour1 = new Swiper('.swiper.tours-slider1', {
+    slidesPerView: 1,
+    spaceBetween: 16,
+    navigation: {
+      nextEl: ".swiper-button-next.tours-slider1",
+      prevEl: ".swiper-button-prev.tours-slider1",
+    },
+    breakpoints: {
+      560: {
+        slidesPerView: 2,
+      }
+    },
+  });
+}
+if ($("div").hasClass("swiper.tours-slider2")){
+  const swiperTour2 = new Swiper('.swiper.tours-slider2', {
+    slidesPerView: 1,
+    spaceBetween: 16,
+    navigation: {
+      nextEl: ".swiper-button-next.tours-slider2",
+      prevEl: ".swiper-button-prev.tours-slider2",
+    },
+    breakpoints: {
+      560: {
+        slidesPerView: 2,
+      }
+    },
+  });
+}
+if ($("div").hasClass("swiper.tours-slider3")){
+  const swiperTour3 = new Swiper('.swiper.tours-slider3', {
+    slidesPerView: 1,
+    spaceBetween: 16,
+    navigation: {
+      nextEl: ".swiper-button-next.tours-slider3",
+      prevEl: ".swiper-button-prev.tours-slider3",
+    },
+    breakpoints: {
+      560: {
+        slidesPerView: 2,
+      }
+    },
+  });
+}
+
+// *** END TOURNAMENTS *** //
+
+
+// *** START GAME SWIPER *** //
+
+if ($("div").hasClass("game-swiper")){
+  var swiper0 = new Swiper(".game-swiper.dub0", {
+    slidesPerView: "auto",
+    spaceBetween: 10,
+    slidesPerGroup: 2,
+    navigation: {
+      nextEl: ".game-swiper.dub0 .swiper-button-next",
+      prevEl: ".game-swiper.dub0 .swiper-button-prev",
+    },
+    breakpoints: {
+      769: {
+        slidesPerGroup: 4,
+        allowTouchMove: false,
+      },
+      1402: {
+        slidesPerGroup: 6,
+      },
+      1621: {
+        slidesPerGroup: 7,
+      }
+    }
+  });
+}
+if ($("div").hasClass("game-swiper")){
+  var swiper1 = new Swiper(".game-swiper.dup1", {
+    slidesPerView: "auto",
+    spaceBetween: 10,
+    slidesPerGroup: 2,
+    navigation: {
+      nextEl: ".game-swiper.dup1 .swiper-button-next",
+      prevEl: ".game-swiper.dup1 .swiper-button-prev",
+    },
+    breakpoints: {
+      769: {
+        slidesPerGroup: 4,
+        allowTouchMove: false,
+      },
+      1402: {
+        slidesPerGroup: 6,
+      },
+      1621: {
+        slidesPerGroup: 7,
+      }
+    }
+  });
+}
+if ($("div").hasClass("game-swiper")){
+  var swiper2 = new Swiper(".game-swiper.dup2", {
+    slidesPerView: "auto",
+    spaceBetween: 10,
+    slidesPerGroup: 2,
+    navigation: {
+      nextEl: ".game-swiper.dup2 .swiper-button-next",
+      prevEl: ".game-swiper.dup2 .swiper-button-prev",
+    },
+    breakpoints: {
+      769: {
+        slidesPerGroup: 4,
+        allowTouchMove: false,
+      },
+      1402: {
+        slidesPerGroup: 6,
+      },
+      1621: {
+        slidesPerGroup: 7,
+      }
+    }
+  });
+}
+if ($("div").hasClass("game-swiper")){
+  var swiper3 = new Swiper(".game-swiper.dup3", {
+    slidesPerView: "auto",
+    spaceBetween: 10,
+    slidesPerGroup: 2,
+    navigation: {
+      nextEl: ".game-swiper.dup3 .swiper-button-next",
+      prevEl: ".game-swiper.dup3 .swiper-button-prev",
+    },
+    breakpoints: {
+      769: {
+        slidesPerGroup: 4,
+        allowTouchMove: false,
+      },
+      1402: {
+        slidesPerGroup: 6,
+      },
+      1621: {
+        slidesPerGroup: 7,
+      }
+    }
+  });
+}
+if ($("div").hasClass("game-swiper")){
+  var swiper4 = new Swiper(".game-swiper.dup4", {
+    slidesPerView: "auto",
+    spaceBetween: 10,
+    navigation: {
+      nextEl: ".game-swiper.dup4 .swiper-button-next",
+      prevEl: ".game-swiper.dup4 .swiper-button-prev",
+    },
+    breakpoints: {
+      769: {
+        allowTouchMove: false,
+      }
+    }
+  });
+}
+if ($("div").hasClass("game-swiper")){
+  var swiper5 = new Swiper(".game-swiper.dup5", {
+    slidesPerView: "auto",
+    spaceBetween: 10,
+    slidesPerGroup: 2,
+    navigation: {
+      nextEl: ".game-swiper.dup5 .swiper-button-next",
+      prevEl: ".game-swiper.dup5 .swiper-button-prev",
+    },
+    breakpoints: {
+      769: {
+        slidesPerGroup: 4,
+        allowTouchMove: false,
+      },
+      1402: {
+        slidesPerGroup: 6,
+      },
+      1621: {
+        slidesPerGroup: 7,
+      }
+    }
+  });
+}
+if ($("div").hasClass("game-swiper")){
+  var swiper6 = new Swiper(".game-swiper.dup6", {
+    slidesPerView: "auto",
+    spaceBetween: 10,
+    slidesPerGroup: 2,
+    navigation: {
+      nextEl: ".game-swiper.dup6 .swiper-button-next",
+      prevEl: ".game-swiper.dup6 .swiper-button-prev",
+    },
+    breakpoints: {
+      769: {
+        slidesPerGroup: 4,
+        allowTouchMove: false,
+      },
+      1402: {
+        slidesPerGroup: 6,
+      },
+      1621: {
+        slidesPerGroup: 7,
+      }
+    }
+  });
+}
+if ($("div").hasClass("game-swiper")){
+  var swiperProvider = new Swiper(".game-swiper.provider-slider", {
+    slidesPerView: 2,
+    spaceBetween: 15,
+    slidesPerGroup: 2,
+    navigation: {
+      nextEl: ".game-swiper-wrapper.providers .swiper-arrows .swiper-button-next",
+      prevEl: ".game-swiper-wrapper.providers .swiper-arrows .swiper-button-prev",
+    },
+    breakpoints: {
+      769: {
+        slidesPerView: 4,
+      },
+      1402: {
+        slidesPerView: 6,
+      },
+    }
+  });
+}
+$(document).on("click", ".game-swiper-wrapper > .swiper-button-prev", function () {
+  var originalBtnNext = $(this).parent(".game-swiper-wrapper").find(".game-swiper").find(".swiper-button-next"),
+    originalBtnPrev = $(this).parent(".game-swiper-wrapper").find(".game-swiper").find(".swiper-button-prev");
+
+  originalBtnPrev.trigger('click');
+  if (originalBtnPrev.hasClass("swiper-button-disabled")) {
+    $(this).addClass("hide-btn")
+  } else {
+    $(this).removeClass("hide-btn")
+  }
+  if (!originalBtnNext.hasClass("swiper-button-disabled")) {
+    $(this).next(".swiper-button-next").removeClass("hide-btn")
+  }
+
+});
+
+$(document).on("click", ".game-swiper-wrapper > .swiper-button-next", function () {
+  var originalBtnNext = $(this).parent(".game-swiper-wrapper").find(".game-swiper").find(".swiper-button-next"),
+    originalBtnPrev = $(this).parent(".game-swiper-wrapper").find(".game-swiper").find(".swiper-button-prev");
+
+  originalBtnNext.trigger('click');
+  if (originalBtnNext.hasClass("swiper-button-disabled")) {
+    $(this).addClass("hide-btn")
+  } else {
+    $(this).removeClass("hide-btn")
+  }
+  if (!originalBtnPrev.hasClass("swiper-button-disabled")) {
+    $(this).prev(".swiper-button-prev").removeClass("hide-btn")
+  }
+});
+
+
+// *** END GAME SWIPER *** //
+
+
+// *** START FAVORITES *** //
+
+$(".star.favorite.no_favorites").on("click", function () {
+  $(this).addClass(".in_favorites");
+  $(this).removeClass(".no_favorites");
+});
+
+// *** END FAVORITES *** //
+
+
+// *** START PROVIDERS *** //
+
+
+$(document).on("click", ".head-subcat-tags a", function () {
+  $('.head-subcat-tags .subcat-tags').removeClass('active');
+  $(this).addClass('active');
+  var filter = $(this).data('num-filter');
+
+  $(".list-game .game-slide").each(function () {
+    var tag = $(this).find('.meta-game-slide').text();
+    $(this).addClass('no-active');
+    if (tag == filter) {
+      $(this).removeClass('no-active');
+      $(this).addClass('active');
+    }
+    if (filter == 'all') {
+      $(this).removeClass('no-active');
+    }
+  });
+});
+
+
+// $(document).on("click", ".head-subcat-select", function () {
+//   $('.main-filters').toggleClass('active');
+// });
+
+$(document).on("click", ".head-subcat-select", function () {
+  $(this).toggleClass('active');
+  $(this).find('.subcat-select').toggleClass('active');
+  $(this).find('.subcat-select-drop').toggleClass('active');
+});
+
+
+const div = document.querySelector('.head-subcat-select');
+
+document.addEventListener('click', (e) => {
+  const withinBoundaries = e.composedPath().includes(div);
+  if (!withinBoundaries) {
+    $('.head-subcat-select .subcat-select').removeClass('active');
+    $('.head-subcat-select .subcat-select-drop').removeClass('active');
+  }
+});
+
+var url_menu = window.location.pathname;
+$('.header-menu a[href="' + url_menu + '"]').addClass('active');
+$('.list-tabs a.router-link[href="' + url_menu + '"]').addClass('active');
+
+if ($("div").hasClass("list-tabs")){
+  var swiperProvider = new Swiper(".swiper.list-tabs", {
+    slidesPerView: "auto",
+    spaceBetween: 1,
+    navigation: {
+      nextEl: ".swiper.list-tabs .swiper-button-next",
+      prevEl: ".swiper.list-tabs .swiper-button-prev",
+    },
+    breakpoints: {
+      768: {
+        spaceBetween: 30,
+      },
+    }
+  });
+}
+
+// *** END PROVIDERS *** //
+
+
+// *** START GAME SEARCH *** //
+
+
+$("input[type=search]:read-only").on("click", function () {
+  close_small();
+  modal_container();
+  $(".modal-overflow").addClass("active");
+  $(".modal-win#search").addClass("active");
+  $(".modal-win#search .search-field input").focus();
+});
+
+$(document).on("click", ".search-block .toggle", function(){
+  console.log("YAP")
+  var active = $(this).hasClass("active")
+  $(".search-block .toggle").removeClass("active");
+  $(".toggle-content>div").removeClass("active");
+  var item = $(this).attr("class");
+  item = item.replace(/\btoggle\b/, '').trim();
+  if(!active){
+    $(this).addClass("active");
+    $(".toggle-content__"+item).addClass("active");
+  }
+});
+
+$(document).on("click", ".toggle-item", function(){
+  $(this).toggleClass("active")
+  searchListGames ()
+});
+
+$(document).on("input", ".modal-win#search .search-field input", function () {
+  if ($(this).val().length > 2) {
+    searchListGames ()
+  }
+});
+
+$(document).on("change", "input[name=wagering]", function(){
+    searchListGames ()
+});
+
+function searchListGames (){
+    var s_q = $(".search-field input[type=search]").val();
+    var providers = []
+    var wageringBonus = "";
+    if ($('.modal-win#search input[name=wagering]').is(':checked')){
+        wageringBonus = "category=wageringbonus&"
+    }
+    $(".toggle-item.active").each(function () {
+        var provider = $(this).data("provider");
+        if (provider) {
+            providers.push(provider);
+        }
+    });
+    console.log(providers)
+    var queryString = providers.map(function (item) {
+        return 'providers[]=' + encodeURIComponent(item);
+    }).join('&');
+    $.ajax({
+        type: "GET",
+        datatype: "JSON",
+        url: "/api/ajax/game_list.php?" + wageringBonus + "search=" + s_q + "&" + queryString,
+        success: function (search) {
+            var search_one = '';
+            $(this).each(function () {
+                if (search != "[]") {
+                    $(".error-search").addClass("hidden");
+                    var search_two = '';
+                    const arr = JSON.parse(search);
+                    for (const key in arr) {
+                      var value = arr[key];
+                      var id_game = value.g_id;
+                      var name_game = value.g_name;
+                      var title_game = value.g_title;
+                      var provider_game = value.provider;
+                      var demo_available = value.demo_available;
+                      var theme_name = $('body').find('.theme_url').text();
+                      theme_name = theme_name.replace('/templates/', '', theme_name);
+                      var image_path = value.image_vertical_path;
+                      var locked = value.isRestrictedByCountry;
+
+                      var btnPlay = '<div class="h-game-btns"><a href="/slots/' + provider_game + '/' + name_game + '?real" class="btn btn-filled red">' + play + '</a>'
+                      var btnDemo = '<a href="/slots/' + provider_game + '/' + name_game + '" class="demo">' + demo + '</a></div>';
+
+                      // console.log(value)
+
+                      if (balance == "") {
+                        btnPlay = '<div class="h-game-btns"><a href="javascript:;" class="btn btn-filled red reg-btn open-reg">' + regTxt + '</a>';
+                      } else if (balance <= 0) {
+                        btnPlay = '<div class="h-game-btns"><a data-tab="#cashier" data-toggle="modal" data-target="#cabinet-modal" class="btn btn-filled green open-deposit">' + donate + '</a>';
+                      }
+                      if (demo_available == "0") {
+                        btnDemo = '</div>';
+                      }
+
+                      var btns = "<div class='hover-game-slide'>" + btnPlay + btnDemo + "</div>";
+
+                      if(locked){
+                        btns = '<div class="locked-game-slide"><svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 30 30" data-name="Layer 1"><path d="m9.507 29.132a.75.75 0 0 0 .562-1.391 13.246 13.246 0 0 1 -7.581-16.655l1.727.06a1.243 1.243 0 0 1 1.155 1.32 1.294 1.294 0 0 1 -.058.3l-.421 1.034a4.271 4.271 0 0 0 8.017 2.951c.014-.038 2.322-6.485 2.322-6.487a1.177 1.177 0 0 1 1.528-.694 4.269 4.269 0 0 0 5.442-2.628l.758-2.213a13.224 13.224 0 0 1 5.3 9.289.75.75 0 1 0 1.492-.157 14.789 14.789 0 1 0 -20.243 15.271zm5.531-27.007a13.276 13.276 0 0 1 6.62 1.766l-.879 2.562a2.769 2.769 0 0 1 -3.515 1.709.382.382 0 0 0 -.051-.018 2.669 2.669 0 0 0 -3.4 1.619l-2.313 6.47a2.772 2.772 0 0 1 -5.212-1.888l.424-1.04a2.762 2.762 0 0 0 .153-.737 2.743 2.743 0 0 0 -2.573-2.921l-1.192-.041a13.292 13.292 0 0 1 11.938-7.481z"/><path d="m27.1 23.958a2.745 2.745 0 0 0 -1.9-2.6v-1.3a3.663 3.663 0 0 0 -7.326 0v1.3a2.744 2.744 0 0 0 -1.9 2.6v2.667a2.753 2.753 0 0 0 2.75 2.75h5.632a2.752 2.752 0 0 0 2.75-2.75zm-7.729-3.9a2.163 2.163 0 0 1 4.326 0v1.155h-4.325zm6.229 6.567a1.251 1.251 0 0 1 -1.25 1.25h-5.631a1.251 1.251 0 0 1 -1.25-1.25v-2.667a1.251 1.251 0 0 1 1.25-1.25h5.632a1.251 1.251 0 0 1 1.25 1.25z"/></svg><div>'+isRestricted+'</div></div>';
+                      }
+
+                      var search_three = "<div class='parent-game-slide'><div class='game-slide' style='background-image: url(" + logo + ");background-repeat: no-repeat; background-position: center; background-size: 90% auto;'><div class='img-game-slide visible' style='background-image: url(" + image_path + ");'></div>"+ btns +"</div><div class='data-game-slide'><div class='h-game-slide'><span>" + title_game + "</span></div><a href='/slots/spadegaming' class='provider-game-slide'>" + provider_game + "</a></div></div>";
+                      search_two = search_two + search_three;
+                    }
+                    search_one = search_two;
+                } else {
+                    $(".error-search").removeClass("hidden");
+                }
+            });
+            $(".modal-win#search .parent-search-list-game.static_games").hide();
+            $(".modal-win#search .parent-search-list-game:not(.static_games) .list-game").html(search_one);
+        },
+        error: function () {}
+    });
+}
+
+$(".close-game").on("click", function () {
+  $(this).parent().parent().addClass("none-search");
+  $(this).parent().parent().find("iframe").attr("src", "");
+  $(this).prev("span").html("");
+});
+
+
+// *** END GAME SEARCH *** //
+
+
+//*** START TOP FILTERS ***//
+
+var mainTitle = $(".h-one-category").html(),
+  newTitle = $(".variables-block-for-js .slots").html(),
+  currentUrl = window.location.pathname;
+
+$(".top-filter .title-block").on("click", function () {
+  if (event.target === this || !$(event.target).hasClass("remove-selected")) {
+    $(this).parent(".top-filter").toggleClass("active");
+    $(this).parent(".top-filter").next(".top-filter").removeClass("active");
+    $(this).parent(".top-filter").prev(".top-filter").removeClass("active");
+  }
+});
+
+$(document).mouseup(function (e) {
+  var div1 = $(".top-filter .title-block");
+  var div2 = $(".top-filters .dropdown");
+  if (!div1.is(e.target) && div1.has(e.target).length === 0 && !div2.is(e.target) && div2.has(e.target).length === 0) {
+    $(".top-filter").removeClass("active");
+  }
+});
+
+$(document).ready(function(){
+  
+  if(currentUrl.includes("/slots/") && !currentUrl.endsWith("/slots")) {
+    
+    var urlParts = currentUrl.split('/');
+    var provider = urlParts[urlParts.length - 1];
+    
+    var providerElement = $(".top-filter.providers .dropdown-item[data-provider='" + provider + "']");
+    if(providerElement.length) {
+      providerElement.addClass("active");
+      
+      var numProviders = $(".top-filter.providers .dropdown-item.active").length;
+      if(numProviders > 0) {
+        $(".valNum").addClass("active").text(numProviders);
+      }
+      
+      var activeProviders = [provider];
+      localStorage.setItem('activeProviders', JSON.stringify(activeProviders));
+
+      var queryAjaxString = JSON.parse(localStorage.getItem('activeProviders')).map(function(item) {
+        return 'providers[]=' + encodeURIComponent(item); 
+      }).join('&');
+
+      $.ajax({
+        type: "GET",
+        datatype: "JSON",
+        url: "/api/ajax/game_list.php?offset="+ getGameFrom +"&limit="+ getGameTo +"&"+ queryAjaxString,
+        success: function (gamesList) {
+          const arr = JSON.parse(gamesList);
+          // console.log(arr)
+          localGameList = arr;
+
+          if (arr.length < getGameTo) {
+            $(".load-more").hide()
+          } else {
+            $(".load-more").show()
+          }
+          getGames()
+          printGames()
+          // console.log(queryAjaxString)
+        },
+        error: function () {
+        }
+      });
+    }
+  } else if(currentUrl.includes("slots") && !currentUrl.includes("slots/")) {
+    let cachedProviders = JSON.parse(localStorage.getItem('activeProviders'));
+    var i = 0
+    for (const key in cachedProviders) {
+      var value = cachedProviders[key];
+      i++
+      if(i == cachedProviders.length){
+        $(".top-filter.providers .dropdown-item[data-provider="+value+"]").trigger("click");
+      }else{
+        $(".top-filter.providers .dropdown-item[data-provider="+value+"]").addClass("active");
+      }
+    }
+    var numProviders = Number($(".top-filter.providers .dropdown-item.active").length);
+    if( numProviders > 0){
+      $(".valNum").addClass("active").text(numProviders);
+    }
+
+    if(!cachedProviders == null){
+      var queryAjaxString = cachedProviders.map(function(item) {
+        return 'providers[]=' + encodeURIComponent(item); 
+      }).join('&');
+    }
+
+    if(cachedProviders && cachedProviders.length < 1 || cachedProviders == null){
+        $.ajax({
+          type: "GET",
+          datatype: "JSON",
+          url: "/api/ajax/game_list.php?offset="+ getGameFrom +"&limit="+ getGameTo +"&"+ queryAjaxString,
+          success: function (gamesList) {
+            const arr = JSON.parse(gamesList);
+            // console.log(arr)
+            localGameList = arr;
+
+            if (arr.length < getGameTo) {
+              $(".load-more").hide()
+            } else {
+              $(".load-more").show()
+            }
+            getGames()
+            console.log("SLOTS")
+            printGames()
+            // console.log(queryAjaxString)
+          },
+          error: function () {
+          }
+        });
+    }
+  }
+});
+
+$(".top-filter.providers .dropdown-item").on("click", function () {
+  var activeProviders = [];
+  getGameFrom = 0
+  
+  $(this).toggleClass("active");
+  $(".top-filter.providers .dropdown-item.active").each(function () {
+    var provider = $(this).data("provider");
+    activeProviders.push(provider)
+  });
+  var numProviders = Number($(".top-filter.providers .dropdown-item.active").length);
+  if (numProviders == 0) {
+    $(".list-game").removeClass("active-filter")
+    $(".list-game .parent-game-slide").removeClass("checked")
+    $(".valNum").removeClass("active").text("")
+    $(".list-game.other").removeClass("hidden")
+    $(".head-one-category .h-one-category").html(mainTitle)
+    $(".remove-selected").addClass("hidden")
+  } else {
+    $(".valNum").addClass("active").text(numProviders)
+    $(".list-game.other").addClass("hidden")
+    $(".head-one-category .h-one-category").html(newTitle)
+    $(".remove-selected").removeClass("hidden")
+  }
+  localStorage.setItem('activeProviders', JSON.stringify(activeProviders));
+  
+  var queryAjaxString = activeProviders.map(function(item) {
+    return 'providers[]=' + encodeURIComponent(item); 
+  }).join('&');
+  
+  $.ajax({
+    type: "GET",
+    datatype: "JSON",
+    url: "/api/ajax/game_list.php?offset="+ getGameFrom +"&limit="+ getGameTo +"&"+ queryAjaxString,
+    success: function (gamesList) {
+      const arr = JSON.parse(gamesList);
+      // console.log(arr)
+      localGameList = arr;
+      
+      if (arr.length < getGameTo) {
+        $(".load-more").hide()
+      } else {
+        $(".load-more").show()
+      }
+      console.log("DROPDOWN ITEM CLICKED")
+      getGames()
+      printGames()
+      // console.log(queryAjaxString)
+    },
+    error: function () {
+    }
+  });
+});
+
+$(".remove-selected").on("click", function(){
+  $(this).parent().parent(".top-filter").removeClass("active");
+  $(this).parent().parent(".top-filter").next(".top-filter").removeClass("active");
+  $(this).parent().parent(".top-filter").prev(".top-filter").removeClass("active");
+  $(".remove-selected").addClass("hidden")
+  $(".top-filter.providers .dropdown-item").removeClass("active");
+  $(".valNum").removeClass("active").text("")
+  $(".list-game.other").removeClass("hidden")
+  var activeProviders = [];
+  $(".top-filter.providers .dropdown-item.active").each(function () {
+    var provider = $(this).data("provider");
+    activeProviders.push(provider)
+  });
+  localStorage.setItem('activeProviders', JSON.stringify(activeProviders));
+  
+  var queryAjaxString = activeProviders.map(function(item) {
+    return 'providers[]=' + encodeURIComponent(item); 
+  }).join('&');
+  
+  getGameFrom = 0
+  
+  $.ajax({
+    type: "GET",
+    datatype: "JSON",
+    url: "/api/ajax/game_list.php?offset="+ getGameFrom +"&limit="+ getGameTo +"&"+ queryAjaxString,
+    success: function (gamesList) {
+      const arr = JSON.parse(gamesList);
+      // console.log(arr)
+      localGameList = arr;
+      
+      if (arr.length < getGameTo) {
+        $(".load-more").hide()
+      } else {
+        $(".load-more").show()
+      }
+      console.log("REMOVE SELECTED")
+      getGames()
+      printGames()
+      // console.log(queryAjaxString)
+    },
+    error: function () {
+    }
+  });
+});
+
+$(".top-filters__btn").on("click", function () {
+  $(".top-filters").toggleClass("active")
+});
+
+$(".top-filter.categories .dropdown-item.sort").on("click", function () {
+  if ($(this).hasClass("active") && !$(this).hasClass("revers")) {
+    $(this).addClass("active").addClass("revers")
+  } else if ($(this).hasClass("revers")) {
+    $(this).removeClass("active revers")
+  } else {
+    $(".top-filter.categories .dropdown-item.sort").removeClass("active revers")
+    $(this).addClass("active")
+  }
+  console.log("getGame")
+  getGames()
+});
+
+//*** END TOP FILTERS ***//
+
+
+// *** START OUTPUT OF ALL GAMES *** //
+
+var url = window.location.href.replace(/\/$/, '');
+var lastSeg = url.substr(url.lastIndexOf('/') + 1);
+lastSeg = lastSeg.split('?')[0];
+var firstPath = location.pathname.split('/')[1];
+var providersAjaxList = [];
+if(!localStorage.getItem('activeProviders') == null){
+  var queryAjaxString = JSON.parse(localStorage.getItem('activeProviders')).map(function(item) {
+    return 'providers[]=' + encodeURIComponent(item); 
+  }).join('&');
+}
+if (firstPath == "slots" && lastSeg != "slots" && lastSeg != "") {
+  // console.log(firstPath)
+  // console.log(lastSeg)
+  $(document).find(".title-provider").each(function () {
+    if ($(this).text().replace(/\s/g, '') == lastSeg) {
+      $(this).parent().addClass("active");
+      $(document).find(".remove-selected").removeClass("hidden");
+    }
+  });
+}
+
+var cdn = $(".variables-block-for-js .cdn-img").html(),
+  play = $(".variables-block-for-js .play").html(),
+  demo = $(".variables-block-for-js .demo").html(),
+  balance = $(".variables-block-for-js .user-balance").html(),
+  donate = $(".variables-block-for-js .donate").html(),
+  themeUrl = $(".variables-block-for-js .theme-url").html(),
+  regTxt = $(".variables-block-for-js .reg-txt").html(),
+  bonusGames = "",
+  getGameFrom = 0,
+  getGameTo = 32;
+
+if ($("div").hasClass("bonus-games")){
+    bonusGames = "category=wageringbonus&"
+}
+
+$(".ajax-list.bonus-games + .load-more").on("click", function () {
+  var num = $(".ajax-list.bonus-games .parent-game-slide").length
+  getGameFrom = num;
+//  getGameTo = num + 29;
+  var activeProviders = [];
+  $(".top-filter.providers .dropdown-item.active").each(function () {
+    var provider = $(this).data("provider");
+    activeProviders.push(provider)
+  });
+  
+  var queryActiveAjaxString = activeProviders.map(function(item) {
+    return 'providers[]=' + encodeURIComponent(item); 
+  }).join('&');
+
+  
+  $.ajax({
+    type: "GET",
+    datatype: "JSON",
+    url: "/api/ajax/game_list.php?"+ bonusGames +"offset="+ getGameFrom +"&limit="+ getGameTo +"&"+ queryActiveAjaxString,
+    success: function (gamesList) {
+      const arr = JSON.parse(gamesList);
+//       console.log(arr)
+      localGameList = arr;
+      
+      if (arr.length < getGameTo) {
+        $(".load-more").hide()
+      } else {
+        $(".load-more").show()
+      }
+      
+      console.log("BONUS LOAD MORE")
+      getGames()
+      addGames()
+       console.log(queryAjaxString)
+    },
+    error: function () {
+    }
+  });
+  // console.log(getGameFrom)
+  // console.log(getGameTo)
+  //  getGames()
+  //  addGames()
+  
+
+});
+
+$(".ajax-list:not(.bonus-games) + .load-more").on("click", function () {
+  var num = $(".ajax-list:not(.bonus-games) .parent-game-slide").length
+  getGameFrom = num;
+//  getGameTo = num + 29;
+  var activeProviders = [];
+  $(".top-filter.providers .dropdown-item.active").each(function () {
+    var provider = $(this).data("provider");
+    activeProviders.push(provider)
+  });
+  
+  var queryActiveAjaxString = activeProviders.map(function(item) {
+    return 'providers[]=' + encodeURIComponent(item); 
+  }).join('&');
+
+  
+  $.ajax({
+    type: "GET",
+    datatype: "JSON",
+    url: "/api/ajax/game_list.php?"+ bonusGames +"offset="+ getGameFrom +"&limit="+ getGameTo +"&"+ queryActiveAjaxString,
+    success: function (gamesList) {
+      const arr = JSON.parse(gamesList);
+//       console.log(arr)
+      localGameList = arr;
+      
+      if (arr.length < getGameTo) {
+        $(".load-more").hide()
+      } else {
+        $(".load-more").show()
+      }
+      
+      console.log("LOAD MORE")
+      getGames()
+      addGames()
+       console.log(queryAjaxString)
+    },
+    error: function () {
+    }
+  });
+  // console.log(getGameFrom)
+  // console.log(getGameTo)
+  //  getGames()
+  //  addGames()
+  
+
+});
+
+$(".load-more-category").on("click", function () {
+  console.log(lastSeg)
+  console.log(getGameFrom)
+  var num = $(".list-game.other .parent-game-slide").length
+  getGameFrom = num;
+//  getGameTo = num + 29;
+
+  
+  $.ajax({
+    type: "GET",
+    datatype: "JSON",
+    url: "/api/ajax/game_list.php?"+ bonusGames +"offset="+ getGameFrom +"&limit="+ getGameTo +"&category="+ lastSeg,
+    success: function (gamesList) {
+      const arr = JSON.parse(gamesList);
+//       console.log(arr)
+      localGameList = arr;
+      
+      if (arr.length < getGameTo) {
+        $(".load-more-category").hide()
+      } else {
+        $(".load-more-category").show()
+      }
+      
+      console.log("LOAD MORE CATEGORY")
+      getGames()
+      addCatGames()
+    },
+    error: function () {
+    }
+  });
+  // console.log(getGameFrom)
+  // console.log(getGameTo)
+  //  getGames()
+  //  addGames()
+  
+
+});
+
+var localGameList = "";
+//if ($(".list-game").hasClass("ajax-list") && !currentUrl.includes("/slots/")) {
+////   console.log(getGameFrom)
+//  // console.log(getGameTo)
+//  $.ajax({
+//    type: "GET",
+//    datatype: "JSON",
+//    url: "/api/ajax/game_list.php?"+ bonusGames +"offset="+ getGameFrom +"&limit="+ getGameTo +"&"+ queryAjaxString,
+//    success: function (gamesList) {
+//      const arr = JSON.parse(gamesList);
+//      // console.log(arr)
+//      localGameList = arr;
+//      
+//      if (arr.length < getGameTo) {
+//        $(".load-more").hide()
+//        $(".load-more-category").hide()
+//      } else {
+//        $(".load-more").show()
+//        $(".load-more-category").show()
+//      }
+//      console.log("getGame")
+//      getGames()
+//      printGames()
+//      // console.log(queryAjaxString)
+//    },
+//    error: function () {
+//    }
+//  });
+//}
+
+var gamesList_one = "";
+function getGames() {
+  console.log("Всего игр - " + Object.keys(localGameList).length);
+
+  var arrPrependSliced = localGameList;
+
+  const arrSliced = {};
+  for (var i = 0; i <= getGameTo; i++) {
+    if (arrPrependSliced.hasOwnProperty(i)) {
+      arrSliced[i] = arrPrependSliced[i];
+    }
+  }
+
+  gamesList_one = "";
+  for (const key in arrSliced) {
+    var value = arrSliced[key];
+    var game_id = value.id;
+    var game_title = value.g_title;
+    var game_name = value.g_name;
+    var game_provider = value.provider;
+    var game_popular = value.popular;
+    var in_favorites = value.in_favorites;
+    var demo_available = value.demo_available;
+    var image_path = value.image_vertical_path;
+    var provider_image_path = value.provider_logo_path;
+    var locked = value.isRestrictedByCountry;
+    var star = '<div class="game-preview__btn-star star favorite no_favorites" data-toggle="add-fav" data-id="' + game_id + '" title="Append to favorites"><svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="white" stroke-width="1.5" class="sc-aXZVg sc-gEvEer hhduLI fteAEG"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.45 4.056c1.024-2.464 4.514-2.464 5.54 0l2.18 5.243a1 1 0 00.843.613l5.66.454c2.66.213 3.74 3.532 1.713 5.268l-4.313 3.695a1 1 0 00-.322.991l1.317 5.524c.62 2.596-2.204 4.647-4.481 3.256l-4.847-2.96a1 1 0 00-1.042 0l-4.846 2.96c-2.278 1.391-5.101-.66-4.482-3.256l1.317-5.524a1 1 0 00-.322-.991l-4.312-3.695c-2.027-1.736-.948-5.055 1.712-5.268l5.66-.454a1 1 0 00.843-.613l2.181-5.243z"></path></svg></div>';
+    if (in_favorites == "1") {
+      star = '<div class="game-preview__btn-star star favorite no_favorites in_favorites" data-toggle="remove-fav" data-id="' + game_id + '" title="Remove from favorites"><svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="white" stroke-width="1.5" class="sc-aXZVg sc-gEvEer hhduLI fteAEG"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.45 4.056c1.024-2.464 4.514-2.464 5.54 0l2.18 5.243a1 1 0 00.843.613l5.66.454c2.66.213 3.74 3.532 1.713 5.268l-4.313 3.695a1 1 0 00-.322.991l1.317 5.524c.62 2.596-2.204 4.647-4.481 3.256l-4.847-2.96a1 1 0 00-1.042 0l-4.846 2.96c-2.278 1.391-5.101-.66-4.482-3.256l1.317-5.524a1 1 0 00-.322-.991l-4.312-3.695c-2.027-1.736-.948-5.055 1.712-5.268l5.66-.454a1 1 0 00.843-.613l2.181-5.243z"></path></svg></div>';
+    }
+    if (userId == ""){
+      star = ""  
+    }
+    var playBtn = '<div class="h-game-btns"><a href="/slots/' + game_provider + '/' + game_name + '?real" class="btn btn-filled red">' + play + '</a>'
+    var btnDemo = '<a href="/slots/' + game_provider + '/' + game_name + '" class="demo">' + demo + '</a></div>';
+    if (balance == "") {
+      playBtn = '<div class="h-game-btns"><a href="javascript:;" class="btn btn-filled red reg-btn open-reg">' + regTxt + '</a>';
+    } else if (balance <= 0) {
+      playBtn = '<div class="h-game-btns"><a data-tab="#cashier" data-toggle="modal" data-target="#cabinet-modal" class="btn btn-filled red open-deposit">' + donate + '</a>';
+    }
+    if (demo_available == "0") {
+      btnDemo = '</div>';
+    }
+        
+    var btns = "<div class='hover-game-slide'>" + star + playBtn + btnDemo + "</div>";
+    var provider_image = "<img class='provider-game-slide-img' data-src='" + provider_image_path + "'>";
+      
+    if(locked){
+        provider_image = ""
+        btns = '<div class="locked-game-slide"><svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 30 30" data-name="Layer 1"><path d="m9.507 29.132a.75.75 0 0 0 .562-1.391 13.246 13.246 0 0 1 -7.581-16.655l1.727.06a1.243 1.243 0 0 1 1.155 1.32 1.294 1.294 0 0 1 -.058.3l-.421 1.034a4.271 4.271 0 0 0 8.017 2.951c.014-.038 2.322-6.485 2.322-6.487a1.177 1.177 0 0 1 1.528-.694 4.269 4.269 0 0 0 5.442-2.628l.758-2.213a13.224 13.224 0 0 1 5.3 9.289.75.75 0 1 0 1.492-.157 14.789 14.789 0 1 0 -20.243 15.271zm5.531-27.007a13.276 13.276 0 0 1 6.62 1.766l-.879 2.562a2.769 2.769 0 0 1 -3.515 1.709.382.382 0 0 0 -.051-.018 2.669 2.669 0 0 0 -3.4 1.619l-2.313 6.47a2.772 2.772 0 0 1 -5.212-1.888l.424-1.04a2.762 2.762 0 0 0 .153-.737 2.743 2.743 0 0 0 -2.573-2.921l-1.192-.041a13.292 13.292 0 0 1 11.938-7.481z"/><path d="m27.1 23.958a2.745 2.745 0 0 0 -1.9-2.6v-1.3a3.663 3.663 0 0 0 -7.326 0v1.3a2.744 2.744 0 0 0 -1.9 2.6v2.667a2.753 2.753 0 0 0 2.75 2.75h5.632a2.752 2.752 0 0 0 2.75-2.75zm-7.729-3.9a2.163 2.163 0 0 1 4.326 0v1.155h-4.325zm6.229 6.567a1.251 1.251 0 0 1 -1.25 1.25h-5.631a1.251 1.251 0 0 1 -1.25-1.25v-2.667a1.251 1.251 0 0 1 1.25-1.25h5.632a1.251 1.251 0 0 1 1.25 1.25z"/></svg><div>'+isRestricted+'</div></div>';
+    }
+      
+    gamesList_one += "<div class='parent-game-slide json'><div class='game-slide' data-provider='" + game_provider + "' data-popular='" + game_popular + "' style='background-image: url(" + logo + ");background-repeat: no-repeat; background-position: center; background-size: 90% auto;'>"+provider_image+"<div class='img-game-slide hide-img' style='background-image: url(" + image_path + ");'></div>"+ btns +"</div><div class='data-game-slide'><div class='h-game-slide'><span>" + game_title + "</span><span class='game-info-desc' data-item-day='6.08' data-item-day-to='down' data-item-week='108.21' data-item-week-to='up' data-item-month='23.67' data-item-month-to='up' data-rtp='96' data-min-max='100 - 1000'><svg width='1em' height='1em' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg' data-testid='info-tooltip'><path d='M16 21.278v-6.334m0-2.638v-1.584M25.5 16a9.5 9.5 0 11-19 0 9.5 9.5 0 0119 0z' stroke='#858585' stroke-linecap='round' stroke-linejoin='round'></path></svg></span></div><a href='/slots/" + game_provider + "' class='provider-game-slide'>" + game_provider + "</a></div></div>";
+  }
+
+  //console.log("Показать на странице - " + getGameTo);
+  //console.log("Доступно - " + Object.keys(arrPrependSliced).length);
+}
+// printGames()
+
+function printGames() {
+  $(".list-game.ajax-list").html(gamesList_one);
+  lazyLoad();
+}
+
+function addGames() {
+  $(".list-game.ajax-list").append(gamesList_one);
+  lazyLoad();
+}
+
+function printBonusGames() {
+  $(".list-game.bonus-games").html(gamesList_one);
+  lazyLoad();
+}
+
+function addBonusGames() {
+  $(".list-game.bonus-games").append(gamesList_one);
+  lazyLoad();
+}
+
+function printCatGames() {
+  $(".list-game.other").html(gamesList_one);
+  lazyLoad();
+}
+
+function addCatGames() {
+  $(".list-game.other").append(gamesList_one);
+  lazyLoad();
+}
+
+// *** END OUTPUT OF ALL GAMES *** //
+
+
+// *** START OUTPUT OF BONUSES *** //
+
+$(document).on("click", ".tab-bonuses__gallery .tab, .bonuses-page .tab", function(){
+    console.log("yap")
+   let num = $(this).index()
+   $(".bonuses-page .tab").removeClass("btn-filled")
+   $(".bonuses-page .tab-content").removeClass("active")
+   $(".tab-bonuses__gallery .tab").removeClass("btn-filled")
+   $(".tab-bonuses__gallery .tab-content").removeClass("active")
+   $(this).addClass("btn-filled")
+   $(this).parent().next(".tabs-content").find(".tab-content").eq(num).addClass("active")
+    if($(this).index() > 0) {
+        loadBonusGames()
+    }
+});
+
+function loadBonusGames (){
+    console.log("loadBonuses")
+    $.ajax({
+        type: "GET",
+        datatype: "JSON",
+        url: "/api/ajax/game_list.php?category=wageringbonus&offset=" + getGameFrom + "&limit=" + getGameTo,
+        success: function (gamesList) {
+            const arr = JSON.parse(gamesList);
+            localGameList = arr;
+
+            if (arr.length < getGameTo) {
+                $(".load-more").hide()
+            } else {
+                $(".load-more").show()
+            }
+
+            console.log("getGame")
+            getGames()
+            printBonusGames()
+        },
+        error: function () {}
+    });
+}
+
+// *** END OUTPUT OF BONUSES *** //
+
+
+// *** START CATEGORIES ON INDEX *** //
+
+//$(".list-game").each(function(){
+//    let category = $(this).data("games");
+//    if(category) {
+//        $.ajax({
+//            type: "GET",
+//            datatype: "JSON",
+//            url: "/api/ajax/game_list.php",
+//            data: { offset: 0, limit: 14, category: category }, // Передаем в data
+//            success: function (gamesList) {
+//                const arr = JSON.parse(gamesList);
+//                localGameList = arr;
+//
+//                getGames();
+//                let target = $(".list-game").filter(`[data-games='${category}']`);
+//                if (target.length) {
+//                    target.append(gamesList_one);
+//                }
+//
+//                console.log(category);
+//                lazyLoad();
+//            },
+//            error: function () {}
+//        });
+//    }
+//});
+
+
+// *** END CATEGORIES ON INDEX *** //
+
+
+// *** START MINI WINS *** //
+
+function ajaxWin() {
+
+  let currentData = [];
+
+  console.log("yap")
+
+  $.ajax({
+    type: "GET",
+    url: "/api/ajax/win_list",
+    success: function (data) {
+
+      if (JSON.stringify(currentData) === JSON.stringify(data)) {
+        return;
+      }
+      console.log(data)
+
+      currentData = data;
+
+      let maxSlides = 8;
+
+      $(".slide-wins").remove();
+
+      for (let i = 0; i < data.length; i++) {
+        const roundedAmount = parseFloat(data[i]['win']).toFixed(0);
+        const currency = $(".variables-block-for-js .currency").html();
+        let slideHtml = `
+          <div class="swiper-slide slide-wins">
+            <img class="game" src="${data[i]['image_path']}" alt=""/>
+
+            <div class="mini-desc">
+              <span class="name">
+                ${data[i]['login']}
+              </span>
+              <div class="summ">
+                <span>${roundedAmount}</span>
+                <span>${currency}</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        $(".swiper-wins .swiper-wrapper").prepend(slideHtml);
+
+        if (i === maxSlides - 1) {
+          break;
+        }
+      }
+      winsInit()
+    },
+    error: function () { }
+  });
+}
+
+if ($('body').attr('id') === 'home') {
+
+  ajaxWin();
+
+  setInterval(function () {
+    ajaxWin
+
+  }, 60000);
+}
+
+
+function winsInit() {
+  var swiperWins = new Swiper('.swiper-wins', {
+    slidesPerView: 3,
+    direction: 'vertical',
+    loop: true,
+    observer: true,
+    allowTouchMove: false,
+    autoplay: {
+      delay: 2500,
+      disableOnInteraction: false,
+    },
+    breakpoints: {
+      '768': {
+        slidesPerView: 4,
+      },
+    }
+
+  });
+}
+// *** END MINI WINS *** //
+
+
+// *** START GAME *** //
+
+
+$(".fullsc.block").on("click", function () {
+  $(".game-modal").toggleClass("full-screen");
+});
+
+$(".modal-game-name .open-fullsc").on("click", function () {
+  elem = $(this).parent().parent().attr("data-num")
+
+  $(this).parent().parent().toggleClass("open-this")
+  $(".game-modal > .game:not([data-num=" + elem + "])").toggleClass("open-one")
+
+  //    toggleFullscreen()
+});
+
+//function fullscreen3(element) {
+//	if(element.requestFullScreen) {
+//		element.requestFullScreen();
+//	} else if(element.mozRequestFullScreen) {
+//		element.mozRequestFullScreen();
+//	} else if(element.webkitRequestFullScreen) {
+//		element.webkitRequestFullScreen();
+//	}
+//	document.getElementById('fullscreen3' ).style.display = 'none';
+//} 
+
+
+$(".modal-game-name .close").on("click", function () {
+  $(this).parent().next("iframe").remove()
+  $(this).parent().remove()
+});
+
+$(".close.block.back").on("click", function () {
+  if (history.length > 1) {
+    window.history.back()
+  } else {
+    location.href = window.location.origin
+  }
+});
+
+
+function toggleFullscreen(elem) {
+  elem = document.getElementById("getFullscreen");
+  if (!document.fullscreenElement && !document.mozFullScreenElement &&
+    !document.webkitFullscreenElement && !document.msFullscreenElement) {
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+      elem.msRequestFullscreen();
+    } else if (elem.mozRequestFullScreen) {
+      elem.mozRequestFullScreen();
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  }
+  $(".game-modal").toggleClass("full-sc");
+}
+
+
+$("#btnFullscreen").on("click", function () {
+  toggleFullscreen();
+});
+
+
+$(".button-fullscreen").on("click", function () {
+  $(this).addClass("active")
+});
+
+
+
+$(".screen .block").on("click", function () {
+  $(this).addClass("active")
+  $(this).prev(".block").removeClass("active")
+  $(this).next(".block").removeClass("active")
+  if ($(".screen .block.active").hasClass("multi")) {
+    $(".game-modal").addClass("multi");
+    $(".top-pannel").addClass("hide");
+    $(".game-page__title").addClass("hide-title");
+  }
+  if ($(".screen .block.active").hasClass("one")) {
+    $(".game-modal").removeClass("multi");
+    $(".top-pannel").removeClass("hide");
+    $(".game-page__title").removeClass("hide-title");
+  }
+});
+
+
+$(".game-modal .game .search input").on("click", function () {
+  close_small();
+  modal_container();
+  $(".modal-overflow").addClass("active");
+  $(".modal-win#search").addClass("active");
+  var num = $(this).parent().parent().attr("data-num");
+  $(".modal-win#search .search-field input").focus();
+  $(".modal-win#search").addClass("active-game" + num);
+
+  $(document).on("click", ".active-game" + num + " .parent-search-list-game .game-slide a", function () {
+    event.preventDefault();
+    var name_game = $(this).parent().parent().parent().parent().find(".h-game-slide").text();
+    var href_link = $(this).attr("href");
+
+    var iframe = $('.game.none-search#win' + num + ' iframe');
+
+    $.ajax({
+      type: "POST",
+      dataType: 'html',
+      url: href_link,
+      success: function (content_gp) {
+        var frame_gp = $(content_gp).find(".game-modal .game:nth-child(1) iframe").attr("src");
+        $(iframe).attr('src', frame_gp);
+      }
+    });
+
+    $(".game.none-search#win" + num + " .modal-game-name span").text(name_game);
+    $(".game.none-search#win" + num).removeClass("none-search");
+    $(".modal-win#search").removeClass("active-game" + num);
+    $(".modal-win#search .search-field input").val('');
+    $(".modal-win#search .close-small").trigger("click");
+  });
+});
+
+$("#search .close-small").on("click", function () {
+  $("#search").attr("class", "modal-win")
+});
+
+
+$(".close-game").on("click", function () {
+  $(this).parent().parent().addClass("none-search");
+  $(this).parent().parent().find("iframe").attr("src", "");
+  $(this).prev("span").html("");
+});
+
+
+var has_game = $('body').hasClass('game-page');
+if (has_game == true) {
+  setTimeout(function () {
+    $('.open-menu-mobile.active').trigger('click');
+  }, 1000);
+}
+
+
+// *** GAME END *** //
+
+
+// *** COOKIE START *** //
+
+
+/*let cook = localStorage.getItem('cookie');
+console.log(cook);
+if(cook != "false"){
+  $('.cookies-policy').addClass('active-cook');
+}
+
+$("#ok_cookie_button").on("click", function(){
+    localStorage.setItem('cookie', 'false');
+  let cook = localStorage.getItem('cookie');
+  console.log(cook);
+  if(cook = "false"){
+    $('.cookies-policy').removeClass('active-cook');
+  }
+});*/
+
+
+// *** COOKIE END *** //
+
+
+// *** FAQ START *** //
+
+
+$(".faq-title").on("click", function () {
+  $(this).toggleClass("active")
+  $(this).next(".faq-section").toggleClass("active")
+});
+
+$(".faq-item b").on("click", function () {
+  if ($(this).parent().hasClass("active")) {
+    $(this).parent().removeClass("active")
+  } else {
+    $(this).parent().parent().find(".faq-item").removeClass("active")
+    $(this).parent().addClass("active")
+  }
+});
+
+
+// *** FAQ END *** //
+
+
+// *** START PAY *** //
+
+
+$(".tab").on("click", function () {
+  var num = $(this).index()
+  $(".tab").removeClass("active")
+  $(this).addClass("active")
+  $(".tab-cont").removeClass("active")
+  $(".tab-cont").eq(num).addClass("active")
+});
+
+
+// *** END PAY *** //
+
+
+// *** START CF *** //
+
+
+function CF() {
+  var email = $(".form-cf input[name='email-cf'").val();
+  var text = $(".form-cf textarea[name='text-cf'").val();
+  if (email == "" || text == "") {
+    $(".reply-contact-form").text("Заполните все поля");
+  }
+  if (email != "" && text != "") {
+    $.ajax({
+      type: "POST",
+      url: "/api/ajax/support.php?action=sendEmail",
+      data: { "email": email, "text": text },
+      success: function (response) {
+        response = JSON.parse(response);
+        if (response.success) {
+          $(".reply-contact-form").text("Сообщение отправлено");
+        } else {
+          $(".reply-contact-form").text(response.error);
+        }
+
+        setTimeout(function () {
+          $(".reply-contact-form").text("");
+        }, 5000);
+      }
+    });
+  }
+}
+
+
+// *** END CF *** //
+
+
+// *** START PIN *** //
+
+
+function Code() {
+  var enter_pin = $(".enter-pin input#form-pin").val();
+
+  $.ajax({
+    type: "POST",
+    url: "/api/ajax/promocode.php",
+    data: { "promocode": enter_pin },
+    success: function (text) {
+      $.parseJSON(text).success
+        ? location.reload()
+        : $(".enter-pin .reply-pin-block").text($.parseJSON(text).error)
+    }
+  });
+}
+
+
+// *** END PIN *** //
+
+
+// *** START AUTH *** //
+
+
+$(document).on("click", ".open-login", function () {
+  close_small();
+  modal_container();
+  $(".modal-container_2").addClass("active");
+  $("html").addClass("modal_open");
+  $(".modal-win#login").addClass("active");
+  $(".modal-container_2 > form").removeClass("active");
+  $(".modal-win#login").parent("form").addClass("active");
+  $(".modal-overflow").addClass("active");
+
+  //  $("html").animate({
+  //    scrollTop: $('.fixed-header').height()
+  //  });
+});
+
+
+function Auth() {
+  var login = $(".login-form input[name='email']").val();
+  var pass = $(".login-form input[name='pass']").val();
+  $.ajax({
+    type: "POST",
+    dataType: 'json',
+    url: "/api/ajax/user.php?action=auth",
+    // url: "/engine/ajax/user.php?action=auth",
+    data: {
+      "email": login,
+      "pass": pass
+    },
+    success: function (auth) {
+      if (auth.success == true) {
+        window.location.reload();
+      } else {
+        $(".login-form .answer").text(auth.error);
+      }
+    },
+    error: function (auth) {
+      console.log(auth)
+      $(".login-form .answer").text(auth.responseText);
+    }
+  });
+}
+
+
+$(document).on("click", ".login-form button.submit", function () {
+  event.preventDefault();
+  console.log("asd")
+  Auth();
+});
+
+
+// *** END AUTH *** //
+
+
+// *** START REMIND *** //
+
+
+$(document).on("click", ".open-remind", function () {
+  close_small();
+  modal_container();
+  $(".modal-container_2").addClass("active");
+  $(".modal-win#remind").addClass("active");
+  $(".modal-container_2 > form").removeClass("active");
+  $(".modal-win#remind").parent("form").addClass("active");
+  $(".modal-overflow").addClass("active");
+});
+
+
+function Remind() {
+  var login = $(".remind-form input[name='email']").val();
+
+  $.ajax({
+    type: "POST",
+    dataType: 'json',
+    url: "/api/ajax/user.php?action=remind",
+    // url: "/engine/ajax/user.php?action=remind",
+    data: {
+      "email": login
+    },
+    success: function (remind) {
+      if (remind.success == true) {
+        $(".remind-form .answer .success").html(remind.message);
+        $(".remind-form .answer .success").addClass("active");
+        setTimeout(function () {
+          $(".remind-form .answer > div").removeClass("active")
+          $(".modal-container_2").removeClass("active");
+          $(".modal-win#remind").removeClass("active");
+          $(".modal-win#remind").parent("form").removeClass("active");
+          $(".modal-overflow").removeClass("active");
+        }, 3000)
+        console.log("true")
+      } else {
+        $(".remind-form .answer .error").html(remind.error);
+        $(".remind-form .answer .error").addClass("active");
+        setTimeout(function () {
+          $(".remind-form .answer > div").removeClass("active")
+        }, 3000)
+        console.log("false")
+      }
+    }
+  });
+}
+
+
+$(document).on("click", ".remind-form button.submit", function () {
+  event.preventDefault();
+  Remind();
+});
+
+
+// *** END REMIND *** //
+
+// *** START WELCOME SLIDER *** //
+var swiperWelcome = new Swiper(".welcome-bonus-slider", {
+  slideToClickedSlide: true,
+    autoHeight: true,
+  navigation: {
+    nextEl: ".welcome-bonus-slider + .swiper-button-prev + .swiper-button-next",
+    prevEl: ".welcome-bonus-slider + .swiper-button-prev",
+  },
+});
+swiperWelcome.on('slideChangeTransitionEnd', function () {
+  $(document).find(".welcome-bonus-slider .swiper-slide.swiper-slide-active label").trigger("click");
+});
+
+// *** END WELCOME SLIDER *** //
+
+
+// *** START REG *** //
+
+
+
+function sortWelcomeBonuses() {
+    $(".form-gift-reg .slider-wrapper").show()
+    var val = $("#currency").val();
+    if(val == "" || $(".welcome-bonus-slider .swiper-slide[data-currency="+val+"]").length < 1){
+        $(".form-gift-reg .slider-wrapper").hide()
+        $(".form-gift-reg .denied").hide()
+        $(".welcome-empty-state").show()
+        setTimeout(function () {
+            $(".form-gift-reg .denied input").prop("checked", "checked");
+        }, 300)
+    }else{
+        $(".form-gift-reg .denied").show()
+        $(".welcome-empty-state").hide()
+        $(".welcome-bonus-slider .swiper-slide").each(function () {
+            if ($(this).attr("data-currency") != val) {
+                $(this).appendTo(".welcome-bonus-slider .swiper-wrapper").hide()
+            } else {
+                $(this).show()
+            }
+        });
+        swiperWelcome.updateSlides();
+        swiperWelcome.slideTo(0);
+        setTimeout(function () {
+            $(document).find(".welcome-bonus-slider .swiper-slide.swiper-slide-active label").trigger("click");
+            if ($(".welcome-bonus-slider .swiper-slide[data-currency=" + val + "]").length < 1) {
+                $(".form-gift-reg .denied input").prop("checked", "checked");
+            }
+        }, 300)
+    }
+}
+
+function triggerClick(){
+  setTimeout(function(){
+    $(document).find(".welcome-bonus-slider .swiper-slide.swiper-slide-active label").trigger("click");
+  }, 300)
+}
+
+$(document).on("click", ".form-gift-reg .swiper-button-prev", function(){
+  triggerClick()
+});
+$(document).on("click", ".form-gift-reg .swiper-button-next", function(){
+  triggerClick()
+});
+
+$(document).on("change", "#currency", function () {
+  sortWelcomeBonuses();
+  $(document).find(".welcome-bonus-slider .swiper-slide.swiper-slide-active label").trigger("click");
+});
+
+
+$(document).on("click", ".open-reg", function () {
+  close_small();
+  modal_container();
+  swiperWelcome.init();
+    if($("#currency").val() != ""){
+        $(".form-gift-reg .denied").show()
+        $(".welcome-empty-state").hide()
+        sortWelcomeBonuses();
+    }else{
+        $(".form-gift-reg input[type=radio]").prop("checked", "checked")
+        $(".form-gift-reg .slider-wrapper").hide()
+        $(".form-gift-reg .denied").hide()
+        $(".welcome-empty-state").show()
+    }
+  $(".modal-container_2").addClass("active");
+  $("html").addClass("modal_open");
+  $(".modal-win#reg").addClass("active");
+  $(".modal-container_2 > form").removeClass("active");
+  $(".modal-win#reg").parent("form").addClass("active");
+  $(".modal-overflow").addClass("active");
+});
+
+
+$(document).on("click", ".pass-open.open-active", function () {
+  $(this).removeClass('open-active');
+  $(this).addClass('close-active');
+  $(".one-form-modal-win input[name='pass']").toggleClass('active');
+  $(".one-form-modal-win input[name='pass']").attr('type', 'text');
+});
+
+
+$(document).on("click", ".one-form-modal-win input[name='terms']", function () {
+  if ($(this).prop("checked") === true) {
+    $(".error-check").removeClass("active");
+  } else {
+    $(".error-check").addClass("active");
+  }
+});
+
+
+$(document).on("click", ".pass-open.close-active", function () {
+  $(this).removeClass('close-active');
+  $(this).addClass('open-active');
+  $(".one-form-modal-win input[name='pass']").removeClass('active');
+  $(".one-form-modal-win input[name='pass']").attr('type', 'password');
+});
+
+
+$(document).on("click", ".reg-form .one-form-modal-win input[type='checkbox']", function () {
+  $(this).toggleClass('active');
+  $(this).parent().parent().find('button.submit').toggleClass('disabled');
+});
+
+function GetRegBonuses() {
+  $.ajax({
+    type: "GET",
+    dataType: 'json',
+    url: "api/ajax/user_bonus.php?action=find&registration=true",
+    success: function (bonus) {
+      if (bonus.length > 0) {
+        //console.log(bonus)
+        $(".welcome-bonus-slider .swiper-wrapper").html("");
+        for (const key in bonus) {
+          var value = bonus[key];
+          var bonus_id = value.id;
+          var bonus_title = value.title;
+          var bonusSlide = '<div class="swiper-slide"><label><input type="radio" name="gft" value="' + bonus_id + '" checked /><span class="indicator">' + selected_txt + '</span><div class="img-one-form-gift-reg"><img data-src="/templates/default/img/bonus/' + bonus_id + '.jpg" alt="banner1"></div><div class="title-one-form-gift-reg">' + bonus_title + '</div></label></div>';
+          $(".welcome-bonus-slider .swiper-wrapper").append(bonusSlide);
+        }
+      }
+    },
+    error: function (bonus) {
+
+    }
+  });
+}
+//GetRegBonuses()
+
+function Reg() {
+  var login = $(".reg-form input[name='email']").val();
+  var pass = $(".reg-form input[name='pass']").val();
+  var currency = $(".reg-form select#currency").val();
+  var bonusId = $("input[name=gft]:checked").attr("value");
+  var urlObj = new URL(window.location.href);
+  var ref = urlObj.searchParams.get("pref");
+  // var country = $(".popup.reg .active-form .country").val();
+  // var phone = $(".popup.reg .active-form .phone").val();
+  // var valute = $(".popup.reg .active-form select[name='valute'] option:selected").val();
+  // var gift = $(".popup.reg input[name='gft']:checked").val();
+  // console.log(language);
+  // console.log(currency);
+  // console.log(gift);
+  // var rules = $('#rules1').is(':checked');
+  var rules = '1';
+  var spam = '1';
+  var promoId = localStorage.getItem('promo_id');
+  
+  //console.log(bonusId)
+
+  $.ajax({
+    type: "POST",
+    dataType: 'json',
+    url: "/api/ajax/user.php?action=register",
+    // url: "/engine/ajax/user.php?action=register",
+    data: {
+      "email": login,
+      "pass": pass,
+      "currency": currency,
+      "bonusId": bonusId,
+      "ref": ref,
+      "yes": true,
+      "spam": true,
+      "promoId": promoId
+    },
+    success: function (reg) {
+      if (reg.success == true) {
+        //console.log(reg);
+        localStorage.removeItem('promo_id')
+        window.location.reload();
+        //console.log("OK")
+      } else {
+        $(".reg-form .answer").text(reg.error);
+      }
+    },
+    error: function (reg) {
+      //console.log(reg)
+      $(".reg-form .answer").text(reg.responseText);
+    }
+  });
+}
+
+
+$(document).on("click", ".reg-form button.submit", function () {
+  event.preventDefault();
+  Reg();
+});
+
+
+// *** END REG *** //
+
+
+//*** START LABEL ADD ACTIVE ***//
+
+$(".pay-tooltip__summ label, .pay-tooltip__input input").on("click", function () {
+  $(".pay-tooltip__summ label").removeClass("active");
+  $(this).addClass("active")
+});
+
+$("label.payment__item").on("click", function () {
+  $(".pay-tooltip__summ label").removeClass("active");
+});
+
+function payBack() {
+  $(".payment__tooltip.payment__tooltip_open").removeClass("payment__tooltip_open")
+}
+
+
+
+//*** END LABEL ADD ACTIVE ***//
+
+
+
+//*** START LIGHT - DARK THEME ***//
+
+$(".change-theme-color input[type='checkbox']").on("change", function () {
+
+  $(".change-theme-color span").removeClass("active")
+  if ($(this).is(":checked")) {
+    $(this).next("span").find(".dark").addClass("active");
+  } else {
+    $(this).next("span").find(".light").addClass("active");
+  }
+  var theme = $(".change-theme-color span .active").attr("data-theme");
+  localStorage.setItem('color', theme);
+  checkTheme();
+});
+
+
+function checkTheme() {
+  if (localStorage.getItem('color') == 'dark') {
+    $("body").addClass("dark-theme");
+    $("html").addClass("dark-theme");
+    $(".change-theme-color input[type='checkbox']").prop("checked", "checked");
+    $(".change-theme-color span").removeClass("active")
+    $(".change-theme-color .dark").addClass("active");
+  } else {
+    $("body").removeClass("dark-theme");
+    $("html").removeClass("dark-theme");
+  }
+}
+checkTheme();
+
+//*** END LIGHT - DARK THEME ***//
+
+
+//*** START GAME DROPDOWN ***//
+
+$(document).on("mouseenter", ".game-info-desc", function () {
+  var pos = $(this).offset(),
+    screenTop = $(document).scrollTop(),
+    screenWidth = $(document).outerWidth(),
+    contWidth = $(".game-stat-dropdown__wrapper").outerWidth(),
+    contHeight = $(".game-stat-dropdown__wrapper").outerHeight(),
+    day = $(this).attr("data-item-day"),
+    dayTo = $(this).attr("data-item-day-to"),
+    week = $(this).attr("data-item-week"),
+    weekTo = $(this).attr("data-item-week-to"),
+    month = $(this).attr("data-item-month"),
+    monthTo = $(this).attr("data-item-month-to"),
+    rtp = $(this).attr("data-rtp"),
+    minMax = $(this).attr("data-min-max");
+
+  if (contHeight < pos.top - screenTop - 100) {
+    if (screenWidth - pos.left > contWidth / 2) {
+      $(".game-stat-dropdown__wrapper").addClass("active").removeClass("bottom left").attr("style", "left: " + Number(pos.left - (contWidth / 2) + 16) + "px; top: " + Number(pos.top - screenTop - contHeight - 16) + "px;");
+    } else {
+      $(".game-stat-dropdown__wrapper").addClass("active left").removeClass("bottom").attr("style", "left: " + Number(pos.left - (contWidth / 2) + 16 - 100) + "px; top: " + Number(pos.top - screenTop - contHeight - 16) + "px;");
+    }
+  } else {
+    if (screenWidth - pos.left > contWidth / 2) {
+      $(".game-stat-dropdown__wrapper").addClass("active bottom").removeClass("left").attr("style", "left: " + Number(pos.left - (contWidth / 2) + 12) + "px; top: " + Number(pos.top - screenTop + 40) + "px;");
+    } else {
+      $(".game-stat-dropdown__wrapper").addClass("active bottom left").attr("style", "left: " + Number(pos.left - (contWidth / 2) + 12 - 100) + "px; top: " + Number(pos.top - screenTop + 40) + "px;");
+    }
+  }
+
+  $(".game-stat-dropdown__wrapper .item:nth-child(1)").addClass(dayTo).find(".text").html(day + "%");
+  $(".game-stat-dropdown__wrapper .item:nth-child(2)").addClass(weekTo).find(" .text").html(week + "%");
+  $(".game-stat-dropdown__wrapper .item:nth-child(3)").addClass(monthTo).find(" .text").html(month + "%");
+  $(".game-stat-dropdown__wrapper .row:nth-child(2) .value").html(rtp + "%");
+  $(".game-stat-dropdown__wrapper .row:nth-child(3) .value span").html(minMax);
+
+});
+
+$("div").on("mouseenter", ".game-stat-dropdown__wrapper", function () {
+  $(this).addClass("hovered");
+});
+
+$("div").on("mouseleave", ".game-stat-dropdown__wrapper", function () {
+  $(".game-stat-dropdown__wrapper").removeClass("active hovered").removeAttr("style");
+});
+
+$(document).on("mouseleave", ".game-info-desc", function () {
+  setTimeout(function () {
+    if (!$(".game-stat-dropdown__wrapper").hasClass("hovered")) {
+      $(".game-stat-dropdown__wrapper").removeClass("active").removeAttr("style");
+    }
+  }, 200)
+});
+
+$(window).on("scroll", function () {
+  $(".game-stat-dropdown__wrapper").removeClass("active").removeAttr("style");
+});
+
+//*** END GAME DROPDOWN ***//
+
+
+//*** START PARTNER GSOFT ***//
+
+$(window).on("load", function () {
+  // Функция для получения GET-параметра
+  function getURLParameter(name) {
+    return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search) || [, ""])[1].replace(/\+/g, '%20')) || null;
+  }
+
+  // Функция для получения значения из куки
+  function getCookieValue(cookieName) {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = cookies[i].trim();
+      if (cookie.indexOf(cookieName + "=") === 0) {
+        return JSON.parse(decodeURIComponent(cookie.substring(cookieName.length + 1)));
+      }
+    }
+    return null;
+  }
+
+  var refFromUrl = getURLParameter('ref');
+  //console.log("refFromUrl: ", refFromUrl);
+
+  // Если GET-параметр 'ref' присутствует
+  if (refFromUrl) {
+    var newValue = encodeURIComponent(JSON.stringify({
+      referer_id: refFromUrl
+    }));
+    document.cookie = "GSOFT_PARTNER=" + newValue + "; path=/";
+    //console.log("Cookie GSOFT_PARTNER set to: ", newValue);
+    var lang = $(".code_lang_gsoft").text(); // если это серверный код, иначе замените на необходимое значение
+
+    $.ajax({
+      type: "GET",
+      url: "https://gambling-soft.com/gsoft_partners/counter.php?lang=" + lang + "&ref=" + refFromUrl,
+      success: function (res) {
+        $(".gsoft_widget_block").html(res);
+      },
+      error: function (jqXHR, textStatus, errorThrown) {
+        // console.log('Error occurred: ' + textStatus);
+        // console.log(jqXHR);
+        // console.log(errorThrown);
+      }
+    });
+
+    var blocks = ['.demo-block__btns', '.demo-block__text', '.copyright_gambling_soft'];
+    blocks.forEach(function (block) {
+//      $(block + ' a').attr('href', function (index, oldHref) {
+//        return oldHref + '?ref=' + refFromUrl;
+//      });
+    });
+  } else {
+    var cookieValue = getCookieValue('GSOFT_PARTNER');
+    if (cookieValue && cookieValue.referer_id) {
+      var ref = cookieValue.referer_id;
+      //console.log("Referer ID from cookie: ", ref);
+      var lang = $(".code_lang_gsoft").text(); // если это серверный код, иначе замените на необходимое значение
+
+      $.ajax({
+        type: "GET",
+        url: "https://gambling-soft.com/gsoft_partners/counter.php?lang=" + lang + "&ref=" + ref,
+        success: function (res) {
+          $(".gsoft_widget_block").html(res);
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+          // console.log('Error occurred: ' + textStatus);
+          // console.log(jqXHR);
+          // console.log(errorThrown);
+        }
+      });
+    }
+
+    var blocks = ['.demo-block__btns', '.demo-block__text', '.copyright_gambling_soft'];
+    blocks.forEach(function (block) {
+//      $(block + ' a').attr('href', function (index, oldHref) {
+//        return oldHref + '?ref=' + ref;
+//      });
+    });
+  }
+});
+
+//*** END PARTNER GSOFT ***//
+
+
+//*** START BOOST BLOCK ***//
+
+// timer
+if ($("div").hasClass("boost-block")) {
+  setInterval(function () {
+    var seconds = Number($(".boost-block .timer-seconds").text()),
+      minutes = Number($(".boost-block .timer-minutes").text()),
+      hours = Number($(".boost-block .timer-hour").text()),
+      days = Number($(".boost-block .timer-day").text());
+    if (seconds > 10) {
+      seconds = seconds - 1
+      $(".boost-block .timer-seconds").text(seconds)
+    } else if (seconds <= 10 && seconds > 0) {
+      seconds = seconds - 1
+      $(".boost-block .timer-seconds").text("0" + seconds)
+    } else if (seconds == 0) {
+      $(".boost-block .timer-seconds").text("60")
+      minutes = minutes - 1
+      $(".boost-block .timer-minutes").text(minutes)
+    }
+  }, 1000)
+}
+
+
+// button show-games
+$(".boost-block__wrapper .show-games > span").on("click", function () {
+  $(this).next(".show-games__dropdown").toggleClass("active")
+});
+
+$(document).mouseup(function (e) {
+  var div1 = $(".show-games__dropdown"),
+    div2 = $(".boost-block__wrapper .show-games > span");
+  if (!div1.is(e.target) && div1.has(e.target).length === 0 && !div2.is(e.target) && div2.has(e.target).length === 0) {
+    div1.removeClass("active");
+  }
+});
+
+
+//*** END BOOST BLOCK ***//
+
+
+//*** START SHOW MORE CONTENT ***//
+
+$(".the-content .btn").on("click", function () {
+  $(".the-content .btn").removeClass("active");
+  if ($(this).hasClass("more")) {
+    $(".the-content .btn.less").addClass("active");
+  } else {
+    $(".the-content .btn.more").addClass("active");
+  }
+  $(".the-content .text").toggleClass("active");
+});
+
+//*** END SHOW MORE CONTENT ***//
+
+//*** START VIP ***//
+
+$(".vip__description").on("click", function () {
+  $(this).toggleClass("active")
+});
+
+$(".vip__profile-tab").on("click", function () {
+  var num = $(this).index();
+  $(".vip__profile-tab").removeClass("active")
+  $(this).addClass("active")
+  $(this).parent().next(".vip__profile-cont").find(".vip__profile-tab-cont").removeClass("active").eq(num).addClass("active")
+  $(".vip__description").removeClass("active")
+});
+
+// VIP INDEX SLIDER
+
+if ($(window).outerWidth() <= 991 && $("div").hasClass("index-vip")) {
+  const swiperIndexVip = new Swiper('.swiper.index-vip', {
+    slidesPerView: 'auto',
+    spaceBetween: 10,
+    centeredSlides: true,
+  });
+}
+
+//*** END VIP ***//
+
+
+//*** START PROFILE HASH ***//
+
+$(document).ready(function () {
+
+
+  function removeHash() {
+    /* функция удаления хеша */
+    var scrollV, scrollH, loc = window.location;
+    if ("pushState" in history)
+      history.pushState("", document.title, loc.pathname + loc.search);
+    else {
+      scrollV = document.body.scrollTop;
+      scrollH = document.body.scrollLeft;
+
+      loc.hash = "";
+
+      document.body.scrollTop = scrollV;
+      document.body.scrollLeft = scrollH;
+    }
+  }
+  /* проверяем есть нужный hash в адресной строке при обновлении  */
+  if (document.location.hash) {
+    var hashUrl = window.location.hash;
+    var urlPath = window.location.pathname;
+    if (urlPath == "/") {
+      $("body").addClass("stop__scroll");
+      $(".modal-overflow").addClass("active");
+      $(".modal-container_2").addClass("active");
+      $("div" + hashUrl).addClass("active");
+      $("div" + hashUrl).parent("form").addClass("active");
+    } else {
+      $("a.tab__item[href='" + hashUrl + "']").trigger("click");
+      $("html").scrollTop(0);
+      removeHash();
+    }
+  };
+
+  /* если hash был изменен и страница не перезагрузилась*/
+  window.addEventListener('hashchange', function () {
+    var hashUrl = window.location.hash
+    if (document.location.hash) {
+      $("a.tab__item[href='" + hashUrl + "']").trigger("click");
+      $(document).scrollTop(0)
+      removeHash();
+    };
+  });
+
+});
+
+//*** END PROFILE HASH ***//
+
+
+//*** START COPY USDT WALLET ***//
+
+$(".quick-deposit__btn").on("click", function () {
+  $(".quick-deposit__dropdown").toggleClass("active")
+});
+
+$(document).mouseup(function (e) {
+  var div1 = $(".quick-deposit__dropdown");
+  var div2 = $(".quick-deposit__btn");
+  if (!div1.is(e.target) && div1.has(e.target).length === 0 && !div2.is(e.target) && div2.has(e.target).length === 0) {
+    $(".quick-deposit__dropdown").removeClass("active")
+  }
+});
+
+$(".quick-deposit__dropdown .btn").on("click", function () {
+  var $temp = $("<input>");
+  $("body").append($temp);
+  $temp.val($(".quick-deposit__dropdown input").val()).select();
+  document.execCommand("copy");
+  $temp.remove();
+});
+
+//*** END COPY USDT WALLET ***//
+
+
+// *** START CHOOSE CURRENCY *** //
+
+function chooseCurrency() {
+  var currency = $("#choose_currency_modal select#choose_currency").val();
+
+    let params = new URLSearchParams(window.location.search);
+    let select_currency = params.get("currency");
+    $("select[name=choose_currency] option").each(function(){
+        if ($(this).attr("value") == select_currency) {
+            $(this).insertAfter("select[name=choose_currency] option[value='']")
+        }
+    });
+
+  $.ajax({
+    type: "POST",
+    dataType: 'json',
+    url: "/api/ajax/user.php?action=choose_currency",
+    data: { "currency": currency },
+    success: function (choose) {
+      if (choose.success == true) {
+        window.location.href = window.location.origin;
+      }
+      if (choose.success == false) {
+        $("#choose_currency_modal .answer").addClass('error__info');
+        $("#choose_currency_modal .answer").text(choose.error);
+      }
+    }
+  });
+}
+
+$(document).on("click", "#choose_currency_modal button.submit", function () {
+  event.preventDefault();
+  chooseCurrency();
+});
+
+// *** END CHOOSE CURRENCY *** //
